@@ -474,50 +474,112 @@ Examples:
 
 ### 10. Onboarding Flow
 
-**Description:** Streamlined 4-screen onboarding with upfront authentication for secure account creation.
+**Description:** Progressive 10-screen onboarding that builds value before authentication, culminating in account creation.
 
 **MVP Requirements:**
 
-**Screen 1: Welcome**
-- Title: "Welcome to Rooted"
-- Subtitle: "Your greenhouse for growing friendships."
-- Visual: Beautiful isometric greenhouse illustration (pixel art)
-- Button: [Get Started]
+**Screen 1: Welcome (1/6)**
+- Title: "ROOTED" (logo/branding)
+- Visual: Large isometric greenhouse illustration (pixel art) with plants inside
+- Subtitle: "Welcome to your friendship garden. Nurture your connections."
+- Button: [GET STARTED]
+- Design: Warm, inviting, establishes aesthetic immediately
 
-**Screen 2: Account Creation**
-- Title: "Create your account"
-- **Email input field** (primary authentication method)
-- **Phone number input field** (optional, for SMS-based login as alternative)
-- Password field (min 8 characters)
-- "Sign Up" button
-- Alternative: "Sign in with Apple" button (iOS native, faster)
+**Screen 2: Value Proposition (1/6)**
+- Title: "Why use Rooted?"
+- Subtitle: "Select all that apply:"
+- Bullet points with checkboxes/highlights:
+  - "Build better friendships"
+  - "Reduce social anxiety"
+  - "Track interactions"
+- Button: [CONTINUE]
+- Purpose: Communicate core value before asking for commitment
+
+**Screen 3: Educational Content (2/6)**
+- Title: "Did you know?"
+- Visual: Illustrated facts/statistics
+- Content: "Deeper connections improve mental health and reduce loneliness. Let's grow together!"
+- Button: [CONTINUE]
+- Purpose: Motivate user with science-backed benefits, reinforce mission
+
+**Screen 4: Add First Friend (3/6)**
+- Title: "Add your first friend!"
+- Subtitle: "-/6" progress indicator
+- UI: Search bar with placeholder "Search Contacts"
+- Button: [+ ADD FRIEND]
+- Alternative: Manual entry option
+- Purpose: Start building emotional investment before authentication
+
+**Screen 5: Set Frequency (3/6)**
+- Title: "How often do you talk?"
+- Subtitle: "-3/6" progress indicator
+- Display: "Friend Name: [Selected Contact Name]"
+- Frequency buttons (large, pill-shaped):
+  - DAILY
+  - WEEKLY
+  - BI-WEEKLY
+  - CUSTOM
+- Button: [NEXT]
+- Purpose: Personalize decay rate, educate on app mechanics
+
+**Screen 6: Choose Plant Type (4/6)**
+- Title: "Choose their plant!"
+- Subtitle: "-4/6" progress indicator
+- Visual: Large centered plant sprite (e.g., succulent)
+- Navigation: Left/Right arrows to browse 8 plant types
+- Plant preview: Shows selected plant in isometric view
+- Button: [SELECT]
+- Purpose: Create visual connection, self-expression
+
+**Screen 7: Plant Selection Browsing (4/6)**
+- Same as Screen 6, showing user can navigate through plant options
+- User can swipe/tap arrows to see all 8 plant types
+- Each plant displays unique sprite and personality
+
+**Screen 8: First Friend Created! (5/6)**
+- Title: "FIRST FRIEND CREATED!"
+- Subtitle: "-5/6" progress indicator
+- Visual: Isometric greenhouse view showing the newly planted friend
+- Message: "You've planted your first seed! Remember to call or text to keep it healthy!"
+- Button: [CONTINUE]
+- Purpose: Celebrate achievement, reinforce care mechanic, build attachment
+
+**Screen 9: Account Creation (6/6)**
+- Title: "Almost there! Create Account"
+- Subtitle: "-6/6" progress indicator
+- Form fields (pixel art styled):
+  - PHONE NUMBER (with country code picker)
+  - EMAIL
+  - NAME
+  - PASSWORD (min 8 characters)
+- Button: [SUBMIT]
+- Alternative: "Sign in with Apple" button (below form)
 - Link: "Already have an account? Sign in"
+- Purpose: Capture authentication AFTER user has invested time/emotion
 
 **Design Notes:**
 - Pixel art themed input fields (subtle border animations)
-- Validation: Real-time email format check
+- Validation: Real-time email format check, password strength indicator
 - Supabase Auth handles email verification (optional confirmation email sent post-signup)
 - Phone number uses international format picker
+- Form is clean, minimal, matches app aesthetic
 
-**Screen 3: Add First Friend**
-- Prompt: "Plant your first friendship"
-- Contact picker OR manual entry (name + phone/email)
-- Choose plant type (visual showcase of 8 isometric plant options)
-- Set frequency with helpful hints ("How often do you usually talk?")
+**Screen 10: Setup Complete! (6/6)**
+- Title: "SETUP COMPLETE!"
+- Subtitle: "-6/6" progress indicator
+- Visual: Full isometric greenhouse view with planted friend
+- Message: "Your garden is ready! Let's start growing!"
+- Button: [ENTER GARDEN]
+- Purpose: Final celebration, clear call-to-action to enter main app
 
-**Screen 4: Place & Tutorial**
-- Place first plant on isometric grid
-- Interactive tutorial overlays:
-  - "Tap any plant to see details"
-  - "Call or text to restore hydration"
-  - "Your plants need regular care to thrive"
-- Button: [Start Gardening]
-
-**First Launch Experience:**
-- Immediate authentication (necessary for cloud sync and data security)
-- Under 90 seconds to complete full onboarding
-- Clean, pixel art themed forms (no generic iOS inputs)
-- Optional: Skip friend-adding in onboarding, start with empty garden
+**Onboarding Experience Principles:**
+- **Value-First:** Show benefits before asking for account
+- **Investment-Based Auth:** User creates plant/emotional attachment before authentication
+- **Progressive Disclosure:** Complex features introduced step-by-step
+- **Celebration Moments:** Screen 8 & 10 provide dopamine hits, positive reinforcement
+- **Clear Progress:** 6-step indicator keeps user oriented
+- **Under 2 minutes:** Complete onboarding in <120 seconds despite 10 screens
+- **Skippable Friend-Adding:** (Optional) Allow users to skip to Screen 9 if they prefer empty garden start
 
 ---
 
@@ -527,11 +589,15 @@ Examples:
 
 **MVP Requirements:**
 
-**Account (Progressive Authentication):**
-- App starts local-only (no login required)
-- After 3 plants added OR Day 2, prompt: "Enable Cloud Backup?"
-- **Sign in with Apple** only (privacy-focused, one-tap)
-- CloudKit sync activates post-login
+**Account (Required Authentication):**
+- Account creation required during onboarding (Screen 9)
+- Authentication methods:
+  - Email + Password (primary)
+  - Phone number + Password (alternative)
+  - Sign in with Apple (one-tap, privacy-focused)
+- Supabase Auth handles authentication and session management
+- Cloud sync (Supabase backend) activates immediately post-signup
+- User data backed up automatically to Supabase PostgreSQL database
 
 **Settings Options:**
 - **Notifications:** On/Off toggle, time customization
@@ -560,8 +626,8 @@ Examples:
 | Push notifications | ✅ MVP | Medium | P0 |
 | Free + Premium revive | ✅ MVP | Low | P0 |
 | 4 decorative furniture items | ✅ MVP | Low | P1 |
-| Progressive authentication | ✅ MVP | Low | P1 |
-| CloudKit sync | ✅ MVP | Medium | P1 |
+| Required authentication (email/phone/Apple) | ✅ MVP | Low | P0 |
+| Supabase cloud sync | ✅ MVP | Medium | P1 |
 | Multiple themes | ❌ Post-MVP | Low | P2 |
 | Garden rooms expansion | ❌ Post-MVP | High | P2 |
 | Rare evolution variants | ❌ Post-MVP | Medium | P2 |

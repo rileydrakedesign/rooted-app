@@ -1,0 +1,9 @@
+export { default as Onboarding1Welcome } from './Onboarding1Welcome';
+export { default as Onboarding2ValueProp } from './Onboarding2ValueProp';
+export { default as Onboarding3Educational } from './Onboarding3Educational';
+export { default as Onboarding4AddFriend } from './Onboarding4AddFriend';
+export { default as Onboarding5Frequency } from './Onboarding5Frequency';
+export { default as Onboarding6ChoosePlant } from './Onboarding6ChoosePlant';
+export { default as Onboarding8Celebration } from './Onboarding8Celebration';
+export { default as Onboarding9CreateAccount } from './Onboarding9CreateAccount';
+export { default as Onboarding10Complete } from './Onboarding10Complete';

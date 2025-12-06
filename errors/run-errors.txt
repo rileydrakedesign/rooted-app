@@ -1,0 +1,24 @@
+console.js:661 Error: Exception in HostFunction: TypeError: expected dynamic type 'boolean', but had type 'string'
+    at createNode (native)
+    at completeWork (192.168.0.109:8081/i…mes-stable:24020:35)
+    at runWithFiberInDEV (192.168.0.109:8081/i…es-stable:19809:135)
+    at completeUnitOfWork (192.168.0.109:8081/i…mes-stable:25575:36)
+    at performUnitOfWork (192.168.0.109:8081/i…mes-stable:25513:44)
+    at workLoopSync (192.168.0.109:8081/i…mes-stable:25404:57)
+    at renderRootSync (192.168.0.109:8081/i…mes-stable:25388:21)
+    at performWorkOnRoot (192.168.0.109:8081/i…mes-stable:25159:53)
+    at performWorkOnRootViaSchedulerTask (192.168.0.109:8081/i…mes-stable:21150:24) Error Stack:
+    at RNSScreen (<anonymous>)
+    at Animated(Anonymous) (192.168.0.109:8081/i…mes-stable:69271:58)
+    at InnerScreen (192.168.0.109:8081/i…es-stable:115439:63)
+    at Screen (192.168.0.109:8081/i…es-stable:115548:56)
+    at ScreenStackItem (192.168.0.109:8081/i…es-stable:117198:56)
+    at SceneView (192.168.0.109:8081/i…es-stable:129138:57)
+    at anonymous (192.168.0.109:8081/i…es-stable:129315:56)
+    at map (native)
+    at NativeStackView (192.168.0.109:8081/i…es-stable:129300:65)
+    at NativeStackNavigator (192.168.0.109:8081/i…es-stable:128900:55)
+    at App (192.168.0.109:8081/i…es-stable:118412:61)
+    at withDevTools(App) (192.168.0.109:8081/i…es-stable:114411:66)
+console.js:661 🚨 React Native's New Architecture is always enabled in Expo Go, but it is explicitly disabled in your project's app config. This may lead to unexpected behavior when creating a production or development build. Remove "newArchEnabled": false from your app.json.
+Learn more: https://docs.expo.dev/guides/new-architecture/

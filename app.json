@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Rooted",
+    "slug": "rooted-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rooted.app",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Rooted needs access to your contacts to help you add friends to your garden.",
+        "NSCalendarsUsageDescription": "Rooted uses calendar access to detect when you've interacted with friends."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.rooted.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client"
+    ]
+  }
+}

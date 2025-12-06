@@ -8,8 +8,10 @@ A relationship wellness app that transforms friendship maintenance into a peacef
 
 ## 📋 Project Status
 
-**Current Phase:** Database schema deployed ✅
-**Next Steps:** React Native app development
+**Current Phase:** React Native foundation complete ✅
+**Next Steps:** Core MVP features (Add Friend, Garden Grid, Hydration System)
+
+See **[DEVELOPMENT.md](./DEVELOPMENT.md)** for complete setup guide and development roadmap.
 
 ---
 
@@ -45,62 +47,47 @@ A relationship wellness app that transforms friendship maintenance into a peacef
 
 - Node.js 18+
 - npm or yarn
-- Expo CLI (`npm install -g expo-cli`)
-- Supabase account
-- iOS development environment (for iOS builds)
+- Expo CLI (installed automatically with project)
+- Supabase account (database already deployed ✅)
+- iOS Simulator (for iOS testing) or Android Emulator
 
-### 1. Database Setup
+### 1. Clone and Install (Already Done ✅)
 
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor in your project
-3. Copy and paste the contents of `supabase-schema.sql`
-4. Click Run
+Dependencies installed:
+- React Native (Expo)
+- Supabase client
+- React Navigation
+- All core dependencies
 
-✅ **Schema deployed!**
+### 2. Configure Environment Variables
 
-See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions.
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
 
-### 2. Initialize React Native Project
+2. Get your Supabase credentials:
+   - Go to [Supabase Dashboard](https://supabase.com) → Settings → API
+   - Copy **Project URL** and **anon/public key**
 
-```bash
-# Create new Expo project
-npx create-expo-app rooted-app --template blank-typescript
+3. Update `.env`:
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+   ```
 
-# Navigate to project
-cd rooted-app
-
-# Install dependencies
-npm install @supabase/supabase-js @react-native-async-storage/async-storage
-npm install expo-constants expo-secure-store
-```
-
-### 3. Configure Supabase Client
-
-Create `src/lib/supabase.ts`:
-
-```typescript
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-  },
-});
-```
-
-Get your credentials from: **Supabase Dashboard → Settings → API**
-
-### 4. Start Development
+### 3. Start Development
 
 ```bash
 npm start
 ```
+
+Then press:
+- `i` for iOS simulator
+- `a` for Android emulator
+- `w` for web browser
+
+See **[DEVELOPMENT.md](./DEVELOPMENT.md)** for complete development guide.
 
 ---
 
@@ -108,29 +95,38 @@ npm start
 
 ```
 rooted_app/
+├── src/
+│   ├── components/                     # Reusable UI components
+│   ├── screens/                        # Screen components
+│   │   ├── WelcomeScreen.tsx
+│   │   ├── LoginScreen.tsx
+│   │   ├── SignUpScreen.tsx
+│   │   ├── GardenScreen.tsx
+│   │   ├── FriendsScreen.tsx
+│   │   └── ProfileScreen.tsx
+│   ├── navigation/                     # Navigation setup
+│   │   ├── AuthNavigator.tsx
+│   │   ├── MainNavigator.tsx
+│   │   └── RootNavigator.tsx
+│   ├── lib/
+│   │   └── supabase.ts                 # Supabase client
+│   ├── hooks/                          # Custom React hooks
+│   ├── types/
+│   │   ├── database.ts                 # Database types
+│   │   └── navigation.ts               # Navigation types
+│   └── assets/                         # Pixel art sprites, fonts (TBD)
 ├── docs/
 │   ├── prd.md                          # Product Requirements Document
 │   ├── DATABASE_SCHEMA.md              # Database documentation
 │   └── DATABASE_QUICK_REFERENCE.md     # Quick reference guide
+├── assets/                             # Expo default assets
 ├── supabase-schema.sql                 # Database schema
+├── App.tsx                             # Main app entry
+├── DEVELOPMENT.md                      # Development guide
 ├── SUPABASE_SETUP.md                   # Backend setup guide
-├── outline.md                          # Original project outline
-└── README.md                           # This file
-```
-
-**Future structure (React Native app):**
-
-```
-rooted_app/
-├── src/
-│   ├── components/          # React components
-│   ├── screens/             # Screen components
-│   ├── lib/                 # Utilities (Supabase client, etc.)
-│   ├── hooks/               # Custom React hooks
-│   ├── types/               # TypeScript types
-│   └── assets/              # Pixel art sprites, fonts
-├── App.tsx                  # Main app entry
-└── package.json
+├── README.md                           # This file
+├── .env.example                        # Environment variables template
+└── package.json                        # Dependencies
 ```
 
 ---
@@ -247,10 +243,13 @@ See [PRD - Success Metrics](./docs/prd.md#success-metrics--kpis) for full metric
 - ✅ PRD created
 - ✅ Database schema designed and deployed
 - ✅ Documentation written
+- ✅ React Native Expo project initialized
+- ✅ Authentication screens (email/phone login)
+- ✅ Navigation structure (Auth + Main tabs)
+- ✅ Supabase client configured
 
 ### Phase 1: MVP Development (Months 1-3)
-- [ ] React Native Expo project setup
-- [ ] Authentication screens (email/phone/Apple)
+- [ ] Add Friend screen and functionality
 - [ ] Isometric grid rendering with Phaser
 - [ ] PixelLab AI asset generation
 - [ ] Friend management (add/edit/delete)
@@ -312,7 +311,7 @@ All rights reserved. This project is proprietary and not open source.
 
 **Developer:** Rileydrake
 **Project:** Rooted - Relationship Wellness App
-**Status:** Pre-alpha (Database setup complete)
+**Status:** Alpha (React Native foundation complete)
 
 ---
 
@@ -325,5 +324,5 @@ All rights reserved. This project is proprietary and not open source.
 
 ---
 
-**Last Updated:** December 4, 2025
-**Version:** 0.1.0 (Database Schema Deployed)
+**Last Updated:** December 5, 2025
+**Version:** 0.2.0 (React Native Foundation Complete)
