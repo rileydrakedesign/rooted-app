@@ -6,41 +6,17 @@ import IsometricGarden from '../components/garden/IsometricGarden';
 import PlantInfoPanel from '../components/garden/PlantInfoPanel';
 import { Plant } from '../components/garden/PlantTile';
 import { Colors } from '../constants/theme';
+import { GridPosition } from '../utils/isometricCoordinates';
 
 type Props = MainTabScreenProps<'Garden'> & {
   onMenuPress?: () => void;
 };
 
 export default function GardenScreen({ navigation, onMenuPress }: Props) {
-  // Mock data for demo - will be replaced with actual data from Supabase
-  const [plants, setPlants] = useState<Plant[]>([
-    {
-      id: '1',
-      friendName: 'Sarah',
-      plantType: 'cactus',
-      stage: 2,
-      hydration: 75,
-      position: { x: 1, y: 1 },
-    },
-    {
-      id: '2',
-      friendName: 'Jake',
-      plantType: 'sunflower',
-      stage: 2,
-      hydration: 45,
-      position: { x: 3, y: 1 },
-    },
-    {
-      id: '3',
-      friendName: 'Alex',
-      plantType: 'fern',
-      stage: 3,
-      hydration: 90,
-      position: { x: 2, y: 3 },
-    },
-  ]);
+  // Empty plants array - ready for actual data from Supabase
+  const [plants, setPlants] = useState<Plant[]>([]);
 
-  const [notificationCount] = useState(2); // Mock notification count
+  const [notificationCount] = useState(0);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [isPlantInfoVisible, setIsPlantInfoVisible] = useState(false);
 
@@ -72,8 +48,19 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
   };
 
   const handlePlantLongPress = (plant: Plant) => {
-    // TODO: Enter Edit Mode (drag to rearrange)
-    Alert.alert('Edit Mode', `Long press detected on ${plant.friendName}'s plant. Drag to rearrange.`);
+    // Drag mode initiated - visual feedback handled by IsometricGarden
+    console.log(`Dragging ${plant.friendName}'s plant`);
+  };
+
+  const handlePlantMove = (plantId: string, newPosition: GridPosition) => {
+    // Update plant position in state
+    setPlants((prevPlants) =>
+      prevPlants.map((plant) =>
+        plant.id === plantId ? { ...plant, position: newPosition } : plant
+      )
+    );
+    console.log(`Moved plant ${plantId} to (${newPosition.x}, ${newPosition.y})`);
+    // TODO: Sync to Supabase
   };
 
   const handleCall = () => {
@@ -110,6 +97,7 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
           plants={plants}
           onPlantPress={handlePlantPress}
           onPlantLongPress={handlePlantLongPress}
+          onPlantMove={handlePlantMove}
         />
 
         {/* Plant Info Panel Modal */}
