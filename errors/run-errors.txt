@@ -1,15 +1,22 @@
-env: load .env
-env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY
-Starting project at /Users/rileydrake/Desktop/rooted_app
-WorkletsBabelPluginError: [Worklets] Babel plugin exception: Cannot set properties of undefined (setting 'workletNumber')
-WorkletsBabelPluginError: [Worklets] Babel plugin exception: Cannot set properties of undefined (setting 'workletNumber')
-    at initializeState (/Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:512:27)
-    at /Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:1790:39
-    at runWithTaggedExceptions (/Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:1778:7)
-    at pre (/Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:1789:7)
-    at serializeAndEvaluate (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Serialize.js:21:12)
-    at serializeAfterStaticPlugins (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Serialize.js:84:30)
-    at withConfigPlugins (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/plugins/withConfigPlugins.js:41:55)
-    at fillAndReturnConfig (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Config.js:236:78)
-    at getConfig (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Config.js:293:10)
-    at startAsync (/Users/rileydrake/Desktop/rooted_app/node_modules/expo/node_modules/@expo/cli/build/src/start/startAsync.js:129:68)
+CommandError: Failed to build iOS project. "xcodebuild" exited with error code 70.
+To view more error logs, try building the app with Xcode directly, by opening /Users/rileydrake/Desktop/rooted_app/ios/Rooted.xcworkspace.
+
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace /Users/rileydrake/Desktop/rooted_app/ios/Rooted.xcworkspace -configuration Debug -scheme Rooted -destination id=00008140-00142D9836D1801C DEVELOPMENT_TEAM=FN5RBHR69S -allowProvisioningUpdates -allowProvisioningDeviceRegistration
+
+User defaults from command line:
+    IDEPackageSupportUseBuiltinSCM = YES
+
+Build settings from command line:
+    DEVELOPMENT_TEAM = FN5RBHR69S
+
+
+
+2025-12-08 22:35:40.191 xcodebuild[43129:98120694]  DVTDeveloperAccountManager: Failed to load credentials for rileydrakedesign@gmail.com: Error Domain=DVTDeveloperAccountCredentialsError Code=0 "Invalid credentials in keychain for rileydrakedesign@gmail.com, missing Xcode-Token" UserInfo={NSLocalizedDescription=Invalid credentials in keychain for rileydrakedesign@gmail.com, missing Xcode-Token}
+2025-12-08 22:36:40.382 xcodebuild[43129:98120634] Writing error result bundle to /var/folders/hc/cjx22mjj0tn28b6t8lr4_qgr0000gn/T/ResultBundle_2025-08-12_22-36-0040.xcresult
+xcodebuild: error: Timed out waiting for all destinations matching the provided destination specifier to become available
+
+
+        Available destinations for the "Rooted" scheme:
+                { platform:iOS, arch:arm64, id:00008140-00142D9836D1801C, name:iPhone 13 (2), error:iPhone 13 (2) needs to be prepared for development Development services need to be enabled. Ensure that the device is unlocked. }
+Build logs written to /Users/rileydrake/Desktop/rooted_app/.expo/xcodebuild.log

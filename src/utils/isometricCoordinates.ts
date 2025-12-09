@@ -109,6 +109,7 @@ export function positionKey(position: GridPosition): string {
  * Clamp zoom value between min and max
  */
 export function clampZoom(zoom: number): number {
+  'worklet';
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
 }
 
