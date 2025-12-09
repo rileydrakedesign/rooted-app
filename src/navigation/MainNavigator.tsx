@@ -6,6 +6,8 @@ import GardenScreen from '../screens/GardenScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
+import AddFriendScreen from '../screens/AddFriendScreen';
+import ChoosePlantScreen from '../screens/ChoosePlantScreen';
 import SimpleDrawer from '../components/navigation/SimpleDrawer';
 
 const Stack = createNativeStackNavigator<MainTabParamList>();
@@ -45,6 +47,8 @@ export default function MainNavigator() {
         </Stack.Screen>
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Help" component={HelpScreen} />
+        <Stack.Screen name="AddFriend" component={AddFriendScreen} />
+        <Stack.Screen name="ChoosePlant" component={ChoosePlantScreen} />
       </Stack.Navigator>
 
       <SimpleDrawer

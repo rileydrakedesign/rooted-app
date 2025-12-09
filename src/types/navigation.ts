@@ -25,6 +25,8 @@ export type MainTabParamList = {
   Friends: undefined;
   Settings: undefined;
   Help: undefined;
+  AddFriend: undefined;
+  ChoosePlant: undefined;
   Profile?: undefined; // Keep for backward compatibility
 };
 

@@ -7,3 +7,5 @@ export { default as SignUpScreen } from './SignUpScreen';
 export { default as GardenScreen } from './GardenScreen';
 export { default as FriendsScreen } from './FriendsScreen';
 export { default as SettingsScreen } from './SettingsScreen';
+export { default as AddFriendScreen } from './AddFriendScreen';
+export { default as ChoosePlantScreen } from './ChoosePlantScreen';

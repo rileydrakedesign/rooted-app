@@ -137,8 +137,7 @@ export default function FriendsScreen({ navigation, onMenuPress }: Props) {
   };
 
   const handleAddFriend = () => {
-    // TODO: Navigate to Add Friend flow
-    console.log('Add friend');
+    navigation.navigate('AddFriend');
   };
 
   const handleFriendPress = (friend: Friend) => {

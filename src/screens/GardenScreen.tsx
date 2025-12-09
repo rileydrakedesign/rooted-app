@@ -54,13 +54,11 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
   };
 
   const handleAddFriendPress = () => {
-    // TODO: Navigate to Add Friend flow
-    Alert.alert('Add Friend', 'Add friend flow coming soon');
+    navigation.navigate('AddFriend');
   };
 
   const handleSettingsPress = () => {
-    // TODO: Navigate to Settings
-    Alert.alert('Settings', 'Settings screen coming soon');
+    navigation.navigate('Settings');
   };
 
   const handleNotificationPress = () => {
