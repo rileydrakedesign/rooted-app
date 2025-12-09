@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import TopBar from '../components/garden/TopBar';
 import IsometricGarden from '../components/garden/IsometricGarden';
+import PlantInfoPanel from '../components/garden/PlantInfoPanel';
 import { Plant } from '../components/garden/PlantTile';
 import { Colors } from '../constants/theme';
 
@@ -40,6 +41,8 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
   ]);
 
   const [notificationCount] = useState(2); // Mock notification count
+  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [isPlantInfoVisible, setIsPlantInfoVisible] = useState(false);
 
   // Handler functions
   const handleMenuPress = () => {
@@ -66,16 +69,29 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
   };
 
   const handlePlantPress = (plant: Plant) => {
-    // TODO: Open Plant Info Panel
-    Alert.alert(
-      `${plant.friendName}'s ${plant.plantType}`,
-      `Hydration: ${plant.hydration}%\nStage: ${plant.stage}`
-    );
+    setSelectedPlant(plant);
+    setIsPlantInfoVisible(true);
   };
 
   const handlePlantLongPress = (plant: Plant) => {
     // TODO: Enter Edit Mode (drag to rearrange)
     Alert.alert('Edit Mode', `Long press detected on ${plant.friendName}'s plant. Drag to rearrange.`);
+  };
+
+  const handleCall = () => {
+    Alert.alert('Call', `Calling ${selectedPlant?.friendName}...`);
+  };
+
+  const handleText = () => {
+    Alert.alert('Text', `Opening messages for ${selectedPlant?.friendName}...`);
+  };
+
+  const handleLogInteraction = () => {
+    Alert.alert('Log Interaction', 'Log interaction screen coming soon');
+  };
+
+  const handleEditFriend = () => {
+    Alert.alert('Edit Friend', 'Edit friend screen coming soon');
   };
 
   return (
@@ -96,6 +112,17 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
           plants={plants}
           onPlantPress={handlePlantPress}
           onPlantLongPress={handlePlantLongPress}
+        />
+
+        {/* Plant Info Panel Modal */}
+        <PlantInfoPanel
+          visible={isPlantInfoVisible}
+          plant={selectedPlant}
+          onClose={() => setIsPlantInfoVisible(false)}
+          onCall={handleCall}
+          onText={handleText}
+          onLogInteraction={handleLogInteraction}
+          onEditFriend={handleEditFriend}
         />
       </View>
     </SafeAreaView>
