@@ -2,3 +2,12 @@ export { default as PixelButton } from './PixelButton';
 export { default as PixelInput } from './PixelInput';
 export { default as ProgressBar } from './ProgressBar';
 export { default as BackButton } from './BackButton';
+
+// Garden components
+export { default as TopBar } from './garden/TopBar';
+export { default as IsometricGarden } from './garden/IsometricGarden';
+export { default as PlantTile } from './garden/PlantTile';
+export type { Plant } from './garden/PlantTile';
+
+// Navigation components
+export { default as CustomDrawerContent } from './navigation/CustomDrawerContent';

@@ -1,0 +1,84 @@
+{
+  "name": "Rooted Pixel Art Theme",
+  "description": "Extracted from actual onboarding code - pixel art style with warm earth tones",
+  "colors": {
+    "background": "#F5E6D3",
+    "container": "#FFFFFF",
+    "primaryText": "#6B4423",
+    "headingText": "#8B4513",
+    "secondaryText": "#A0826D",
+    "buttonPrimaryBg": "#B8916B",
+    "buttonPrimaryText": "#FFFFFF",
+    "buttonSecondaryBg": "#D4A574",
+    "buttonSecondaryText": "#6B4423",
+    "inputBg": "#FFFFFF",
+    "inputText": "#6B4423",
+    "inputPlaceholder": "#A0826D",
+    "progressBarBg": "#DEB887",
+    "progressBarFill": "#8B6F47",
+    "borderLight": "#E8C9A0",
+    "borderDark": "#8B6F47",
+    "borderInput": "#E0E0E0"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Rubik Bold",
+      "excalidrawMapping": "Helvetica (fontFamily: 2)",
+      "sizes": {
+        "large": 36,
+        "medium": 32,
+        "small": 28
+      }
+    },
+    "subtext": {
+      "family": "Nunito Bold",
+      "excalidrawMapping": "Helvetica (fontFamily: 2)",
+      "sizes": {
+        "large": 20,
+        "medium": 18,
+        "small": 16
+      }
+    },
+    "pixel": {
+      "family": "VT323",
+      "excalidrawMapping": "Cascadia/monospace (fontFamily: 3) - closest approximation to pixel font",
+      "sizes": {
+        "button": 27,
+        "input": 16,
+        "caption": 14
+      }
+    }
+  },
+  "borders": {
+    "pixelStyle": {
+      "width": 3,
+      "topWidth": 2,
+      "leftWidth": 2,
+      "rightWidth": 4,
+      "bottomWidth": 4,
+      "radius": 10
+    },
+    "inputStyle": {
+      "width": 3,
+      "topWidth": 2,
+      "leftWidth": 2,
+      "rightWidth": 4,
+      "bottomWidth": 4,
+      "radius": 8
+    }
+  },
+  "shadows": {
+    "pixelShadow": {
+      "offsetX": -3,
+      "offsetY": 3,
+      "opacity": 0.4,
+      "blur": 0
+    },
+    "inputShadow": {
+      "offsetX": -2,
+      "offsetY": 2,
+      "opacity": 0.3,
+      "blur": 0
+    }
+  }
+}

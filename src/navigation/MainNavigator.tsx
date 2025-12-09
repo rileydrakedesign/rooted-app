@@ -1,51 +1,50 @@
-import React from 'react';
-import { Text } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import React, { useState } from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabParamList } from '../types/navigation';
 
 import GardenScreen from '../screens/GardenScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import HelpScreen from '../screens/HelpScreen';
+import SimpleDrawer from '../components/navigation/SimpleDrawer';
 
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Stack = createNativeStackNavigator<MainTabParamList>();
 
 export default function MainNavigator() {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [currentRoute, setCurrentRoute] = useState('Garden');
+
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen
-        name="Garden"
-        component={GardenScreen}
-        options={{
-          tabBarIcon: ({ color }) => <GardenIcon color={color} />,
+    <>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
         }}
-      />
-      <Tab.Screen
-        name="Friends"
-        component={FriendsScreen}
-        options={{
-          tabBarIcon: ({ color }) => <FriendsIcon color={color} />,
+      >
+        <Stack.Screen name="Garden">
+          {(props) => (
+            <GardenScreen
+              {...props}
+              onMenuPress={() => setIsDrawerOpen(true)}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="Friends" component={FriendsScreen} />
+        <Stack.Screen name="Settings" component={ProfileScreen} />
+        <Stack.Screen name="Help" component={HelpScreen} />
+      </Stack.Navigator>
+
+      <SimpleDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        navigation={{
+          navigate: (screen: string) => {
+            setCurrentRoute(screen);
+            setIsDrawerOpen(false);
+          },
         }}
+        state={{ routeNames: ['Garden', 'Friends', 'Settings', 'Help'], index: 0 }}
       />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ color }) => <ProfileIcon color={color} />,
-        }}
-      />
-    </Tab.Navigator>
+    </>
   );
-}
-
-// Simple text-based icons (will be replaced with actual pixel art icons later)
-function GardenIcon({ color }: { color: string }) {
-  return <Text style={{ fontSize: 24, color }}>🌱</Text>;
-}
-
-function FriendsIcon({ color }: { color: string }) {
-  return <Text style={{ fontSize: 24, color }}>👥</Text>;
-}
-
-function ProfileIcon({ color }: { color: string }) {
-  return <Text style={{ fontSize: 24, color }}>👤</Text>;
 }

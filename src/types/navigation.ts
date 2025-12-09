@@ -1,6 +1,5 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
 // Auth Stack - Onboarding Flow
 export type AuthStackParamList = {
@@ -20,15 +19,17 @@ export type AuthStackParamList = {
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
   NativeStackScreenProps<AuthStackParamList, T>;
 
-// Main Tab Navigator
+// Main Drawer Navigator (changed from Tab to Drawer)
 export type MainTabParamList = {
   Garden: undefined;
   Friends: undefined;
-  Profile: undefined;
+  Settings: undefined;
+  Help: undefined;
+  Profile?: undefined; // Keep for backward compatibility
 };
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> =
-  BottomTabScreenProps<MainTabParamList, T>;
+  NativeStackScreenProps<MainTabParamList, T>;
 
 // Root Stack
 export type RootStackParamList = {

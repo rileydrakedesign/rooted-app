@@ -11,7 +11,7 @@ import { MainTabScreenProps } from '../types/navigation';
 import { supabase } from '../lib/supabase';
 import { User } from '../types/database';
 
-type Props = MainTabScreenProps<'Profile'>;
+type Props = MainTabScreenProps<'Settings'>;
 
 export default function ProfileScreen({ navigation }: Props) {
   const [user, setUser] = useState<User | null>(null);

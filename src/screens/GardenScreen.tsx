@@ -1,56 +1,114 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
+import TopBar from '../components/garden/TopBar';
+import IsometricGarden from '../components/garden/IsometricGarden';
+import { Plant } from '../components/garden/PlantTile';
+import { Colors } from '../constants/theme';
 
-type Props = MainTabScreenProps<'Garden'>;
+type Props = MainTabScreenProps<'Garden'> & {
+  onMenuPress?: () => void;
+};
 
-export default function GardenScreen({ navigation }: Props) {
+export default function GardenScreen({ navigation, onMenuPress }: Props) {
+  // Mock data for demo - will be replaced with actual data from Supabase
+  const [plants, setPlants] = useState<Plant[]>([
+    {
+      id: '1',
+      friendName: 'Sarah',
+      plantType: 'cactus',
+      stage: 2,
+      hydration: 75,
+      position: { x: 1, y: 1 },
+    },
+    {
+      id: '2',
+      friendName: 'Jake',
+      plantType: 'sunflower',
+      stage: 2,
+      hydration: 45,
+      position: { x: 3, y: 1 },
+    },
+    {
+      id: '3',
+      friendName: 'Alex',
+      plantType: 'fern',
+      stage: 3,
+      hydration: 90,
+      position: { x: 2, y: 3 },
+    },
+  ]);
+
+  const [notificationCount] = useState(2); // Mock notification count
+
+  // Handler functions
+  const handleMenuPress = () => {
+    if (onMenuPress) {
+      onMenuPress();
+    } else {
+      Alert.alert('Menu', 'Drawer will open here');
+    }
+  };
+
+  const handleAddFriendPress = () => {
+    // TODO: Navigate to Add Friend flow
+    Alert.alert('Add Friend', 'Add friend flow coming soon');
+  };
+
+  const handleSettingsPress = () => {
+    // TODO: Navigate to Settings
+    Alert.alert('Settings', 'Settings screen coming soon');
+  };
+
+  const handleNotificationPress = () => {
+    // TODO: Open notification panel
+    Alert.alert('Notifications', `You have ${notificationCount} notifications`);
+  };
+
+  const handlePlantPress = (plant: Plant) => {
+    // TODO: Open Plant Info Panel
+    Alert.alert(
+      `${plant.friendName}'s ${plant.plantType}`,
+      `Hydration: ${plant.hydration}%\nStage: ${plant.stage}`
+    );
+  };
+
+  const handlePlantLongPress = (plant: Plant) => {
+    // TODO: Enter Edit Mode (drag to rearrange)
+    Alert.alert('Edit Mode', `Long press detected on ${plant.friendName}'s plant. Drag to rearrange.`);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My Garden</Text>
-      <Text style={styles.subtitle}>
-        Your plants will appear here once you add friends
-      </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Top Bar */}
+        <TopBar
+          gardenName="My Garden"
+          notificationCount={notificationCount}
+          onMenuPress={handleMenuPress}
+          onAddFriendPress={handleAddFriendPress}
+          onSettingsPress={handleSettingsPress}
+          onNotificationPress={handleNotificationPress}
+        />
 
-      {/* TODO: Implement isometric garden grid with Phaser or react-native-svg */}
-      <View style={styles.gardenPlaceholder}>
-        <Text style={styles.placeholderText}>
-          🌱 Garden Grid Coming Soon
-        </Text>
+        {/* Isometric Garden Viewport */}
+        <IsometricGarden
+          plants={plants}
+          onPlantPress={handlePlantPress}
+          onPlantLongPress={handlePlantLongPress}
+        />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.warmBeige,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F5F5DC',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#4A5D3E',
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7C5E',
-    marginBottom: 20,
-  },
-  gardenPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E8E8DC',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#D4D4C8',
-    borderStyle: 'dashed',
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: '#6B7C5E',
+    backgroundColor: Colors.warmBeige,
   },
 });
