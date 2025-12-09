@@ -6,4 +6,4 @@ export { default as SignUpScreen } from './SignUpScreen';
 // Main Screens
 export { default as GardenScreen } from './GardenScreen';
 export { default as FriendsScreen } from './FriendsScreen';
-export { default as ProfileScreen } from './ProfileScreen';
+export { default as SettingsScreen } from './SettingsScreen';

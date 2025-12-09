@@ -61,7 +61,7 @@ export default function SimpleDrawer({
             },
           ]}
         >
-          <CustomDrawerContent navigation={navigation} state={state} />
+          <CustomDrawerContent navigation={navigation} state={state} onClose={onClose} />
         </Animated.View>
       </View>
     </Modal>

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabParamList } from '../types/navigation';
 
 import GardenScreen from '../screens/GardenScreen';
 import FriendsScreen from '../screens/FriendsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
 import SimpleDrawer from '../components/navigation/SimpleDrawer';
 
@@ -12,7 +12,7 @@ const Stack = createNativeStackNavigator<MainTabParamList>();
 
 export default function MainNavigator() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [currentRoute, setCurrentRoute] = useState('Garden');
+  const navigationRef = useRef<any>(null);
 
   return (
     <>
@@ -22,27 +22,35 @@ export default function MainNavigator() {
         }}
       >
         <Stack.Screen name="Garden">
-          {(props) => (
-            <GardenScreen
-              {...props}
-              onMenuPress={() => setIsDrawerOpen(true)}
-            />
-          )}
+          {(props) => {
+            navigationRef.current = props.navigation;
+            return (
+              <GardenScreen
+                {...props}
+                onMenuPress={() => setIsDrawerOpen(true)}
+              />
+            );
+          }}
         </Stack.Screen>
-        <Stack.Screen name="Friends" component={FriendsScreen} />
-        <Stack.Screen name="Settings" component={ProfileScreen} />
+        <Stack.Screen name="Friends">
+          {(props) => {
+            navigationRef.current = props.navigation;
+            return (
+              <FriendsScreen
+                {...props}
+                onMenuPress={() => setIsDrawerOpen(true)}
+              />
+            );
+          }}
+        </Stack.Screen>
+        <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Help" component={HelpScreen} />
       </Stack.Navigator>
 
       <SimpleDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        navigation={{
-          navigate: (screen: string) => {
-            setCurrentRoute(screen);
-            setIsDrawerOpen(false);
-          },
-        }}
+        navigation={navigationRef.current}
         state={{ routeNames: ['Garden', 'Friends', 'Settings', 'Help'], index: 0 }}
       />
     </>

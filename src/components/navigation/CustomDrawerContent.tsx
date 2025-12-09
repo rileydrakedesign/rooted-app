@@ -6,10 +6,11 @@ import { Fonts, FontSizes } from '../../constants/fonts';
 interface CustomDrawerProps {
   navigation: any;
   state: any;
+  onClose?: () => void;
 }
 
 export default function CustomDrawerContent(props: CustomDrawerProps) {
-  const { state, navigation } = props;
+  const { state, navigation, onClose } = props;
   const currentRoute = state.routeNames[state.index];
 
   const handleLogout = () => {
@@ -62,7 +63,14 @@ export default function CustomDrawerContent(props: CustomDrawerProps) {
                   styles.menuItem,
                   isActive && styles.menuItemActive,
                 ]}
-                onPress={() => navigation.navigate(item.name as any)}
+                onPress={() => {
+                  if (navigation) {
+                    navigation.navigate(item.name as any);
+                  }
+                  if (onClose) {
+                    onClose();
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={styles.menuIcon}>{item.icon}</Text>
