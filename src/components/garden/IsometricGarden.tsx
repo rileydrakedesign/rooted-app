@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
-import { GestureHandlerRootView, PinchGestureHandler } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -50,15 +49,14 @@ export default function IsometricGarden({
   });
 
   // Pinch gesture handler for zoom
-  const pinchHandler = useAnimatedGestureHandler({
-    onActive: (event) => {
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((event) => {
       scale.value = clampZoom(event.scale);
-    },
-    onEnd: () => {
+    })
+    .onEnd(() => {
       // Smooth spring back if needed
       scale.value = withSpring(clampZoom(scale.value));
-    },
-  });
+    });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -85,7 +83,7 @@ export default function IsometricGarden({
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <PinchGestureHandler onGestureEvent={pinchHandler}>
+      <GestureDetector gesture={pinchGesture}>
         <Animated.View style={[styles.gardenContainer, animatedStyle]}>
           {/* Background Layer */}
           <Image
@@ -123,14 +121,15 @@ export default function IsometricGarden({
           )}
 
           {/* Foreground Layer */}
-          <Image
-            source={require('../../../assets/images/garden/garden-foreground.png')}
-            style={styles.foregroundImage}
-            resizeMode="contain"
-            pointerEvents="none"
-          />
+          <View style={styles.foregroundImage} pointerEvents="none">
+            <Image
+              source={require('../../../assets/images/garden/garden-foreground.png')}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="contain"
+            />
+          </View>
         </Animated.View>
-      </PinchGestureHandler>
+      </GestureDetector>
     </GestureHandlerRootView>
   );
 }

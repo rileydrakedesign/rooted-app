@@ -1,8 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { LongPressGestureHandler, State } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -51,15 +50,13 @@ export default function DraggablePlant({
     tileHeight
   );
 
-  const longPressHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
       // Lift the plant
       scale.value = withSpring(1.15);
       runOnJS(onDragStart)();
-      ctx.startX = 0;
-      ctx.startY = 0;
-    },
-    onActive: (event, ctx: any) => {
+    })
+    .onUpdate((event) => {
       // Update translation
       translateX.value = event.translationX;
       translateY.value = event.translationY;
@@ -74,8 +71,8 @@ export default function DraggablePlant({
 
       // Notify parent of drag movement
       runOnJS(onDragMove)(targetGrid, isValid);
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       // Calculate final grid position
       const screenX = basePosition.x + event.translationX;
       const screenY = basePosition.y + event.translationY;
@@ -95,15 +92,13 @@ export default function DraggablePlant({
         scale.value = withSpring(1);
         runOnJS(onDragEnd)(plant.position, false);
       }
-    },
-    onFail: () => {
-      // Short tap - treat as press
-      translateX.value = withSpring(0);
-      translateY.value = withSpring(0);
-      scale.value = withSpring(1);
-      runOnJS(onPress)();
-    },
+    });
+
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    runOnJS(onPress)();
   });
+
+  const composedGesture = Gesture.Simultaneous(tapGesture, panGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -116,15 +111,7 @@ export default function DraggablePlant({
   }));
 
   return (
-    <LongPressGestureHandler
-      onHandlerStateChange={(event) => {
-        if (event.nativeEvent.state === State.BEGAN) {
-          longPressHandler.onStart?.(event.nativeEvent, {});
-        }
-      }}
-      onGestureEvent={longPressHandler}
-      minDurationMs={300}
-    >
+    <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.plantContainer, animatedStyle]}>
         {/* Plant sprite - using emoji for now */}
         <Text style={styles.plantEmoji}>
@@ -132,16 +119,16 @@ export default function DraggablePlant({
           {plant.plantType === 'sunflower' && '🌻'}
           {plant.plantType === 'fern' && '🌿'}
           {plant.plantType === 'rose' && '🌹'}
-          {plant.plantType === 'tulip' && '🌷'}
-          {plant.plantType === 'daisy' && '🌼'}
-          {plant.plantType === 'orchid' && '🌸'}
-          {plant.plantType === 'lavender' && '🪻'}
+          {plant.plantType === 'succulent' && '🌱'}
+          {plant.plantType === 'ivy' && '🍃'}
+          {plant.plantType === 'monstera' && '🌿'}
+          {plant.plantType === 'bamboo' && '🎋'}
         </Text>
 
         {/* Friend name label */}
         <Text style={styles.friendName}>{plant.friendName}</Text>
       </Animated.View>
-    </LongPressGestureHandler>
+    </GestureDetector>
   );
 }
 

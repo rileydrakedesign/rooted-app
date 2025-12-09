@@ -1,32 +1,15 @@
-iOS Bundling failed 692ms index.ts (999 modules)
-Unable to resolve "@react-navigation/drawer" from "src/components/navigation/CustomDrawerContent.tsx"
-  1 | import React from 'react';
-  2 | import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-> 3 | import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
-    |                                                                       ^
-  4 | import { Colors, Spacing, BorderRadius } from '../../constants/theme';
-  5 | import { Fonts, FontSizes } from '../../constants/fonts';
-  6 |
-
-Import stack:
-
- src/components/navigation/CustomDrawerContent.tsx
- | import "@react-navigation/drawer"
-
- src/components/navigation/SimpleDrawer.tsx
- | import "./CustomDrawerContent"
-
- src/navigation/MainNavigator.tsx
- | import "../components/navigation/SimpleDrawer"
-
- src/navigation/RootNavigator.tsx
- | import "./MainNavigator"
-
- App.tsx
- | import "./src/navigation/RootNavigator"
-
- index.ts
- | import "./App"
-
- 
- | import "./index.ts"
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY
+Starting project at /Users/rileydrake/Desktop/rooted_app
+WorkletsBabelPluginError: [Worklets] Babel plugin exception: Cannot set properties of undefined (setting 'workletNumber')
+WorkletsBabelPluginError: [Worklets] Babel plugin exception: Cannot set properties of undefined (setting 'workletNumber')
+    at initializeState (/Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:512:27)
+    at /Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:1790:39
+    at runWithTaggedExceptions (/Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:1778:7)
+    at pre (/Users/rileydrake/Desktop/rooted_app/node_modules/react-native-worklets/plugin/index.js:1789:7)
+    at serializeAndEvaluate (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Serialize.js:21:12)
+    at serializeAfterStaticPlugins (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Serialize.js:84:30)
+    at withConfigPlugins (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/plugins/withConfigPlugins.js:41:55)
+    at fillAndReturnConfig (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Config.js:236:78)
+    at getConfig (/Users/rileydrake/Desktop/rooted_app/node_modules/@expo/config/build/Config.js:293:10)
+    at startAsync (/Users/rileydrake/Desktop/rooted_app/node_modules/expo/node_modules/@expo/cli/build/src/start/startAsync.js:129:68)
