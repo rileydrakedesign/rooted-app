@@ -30,6 +30,14 @@ export default function DebugGrid({
         y: offsetY + screenPos.y,
       };
 
+      // Highlight origin (0,0) in red, corners in blue
+      const isOrigin = x === 0 && y === 0;
+      const isCorner =
+        (x === 0 && y === 0) ||
+        (x === GRID_SIZE - 1 && y === 0) ||
+        (x === 0 && y === GRID_SIZE - 1) ||
+        (x === GRID_SIZE - 1 && y === GRID_SIZE - 1);
+
       tiles.push(
         <View
           key={`${x},${y}`}
@@ -43,15 +51,45 @@ export default function DebugGrid({
             },
           ]}
         >
-          <View style={styles.diamond}>
-            <Text style={styles.label}>{`${x},${y}`}</Text>
+          <View
+            style={[
+              styles.diamond,
+              {
+                backgroundColor: isOrigin
+                  ? 'rgba(255, 0, 0, 0.3)'
+                  : isCorner
+                  ? 'rgba(0, 100, 255, 0.25)'
+                  : 'rgba(255, 255, 255, 0.25)',
+                borderColor: isOrigin ? '#ff0000' : isCorner ? '#0064ff' : 'rgba(0, 0, 0, 0.4)',
+                borderWidth: isOrigin ? 3 : 2,
+              },
+            ]}
+          >
+            <Text style={[styles.label, isOrigin && styles.originLabel]}>
+              {`${x},${y}`}
+            </Text>
           </View>
         </View>
       );
     }
   }
 
-  return <View style={styles.container}>{tiles}</View>;
+  // Add a center marker at the origin offset
+  return (
+    <View style={styles.container}>
+      {tiles}
+      {/* Origin marker */}
+      <View
+        style={[
+          styles.originMarker,
+          {
+            left: offsetX - 4,
+            top: offsetY - 4,
+          },
+        ]}
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -67,19 +105,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   diamond: {
-    width: '80%',
-    height: '80%',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.3)',
+    width: '90%',
+    height: '90%',
     transform: [{ rotate: '45deg' }],
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#000',
     fontWeight: 'bold',
     transform: [{ rotate: '-45deg' }],
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  originLabel: {
+    fontSize: 14,
+    color: '#ff0000',
+    fontWeight: 'bold',
+  },
+  originMarker: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff0000',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
 });

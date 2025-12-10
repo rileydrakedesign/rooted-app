@@ -13,7 +13,7 @@ type Props = MainTabScreenProps<'Garden'> & {
 };
 
 export default function GardenScreen({ navigation, onMenuPress }: Props) {
-  // Test plants for drag functionality testing
+  // Test plants for drag functionality testing (4x4 grid: positions 0-3)
   const [plants, setPlants] = useState<Plant[]>([
     {
       id: '1',
@@ -21,7 +21,7 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
       plantType: 'fern',
       stage: 3,
       hydration: 75,
-      position: { x: 2, y: 2 },
+      position: { x: 1, y: 1 }, // Center-left
     },
     {
       id: '2',
@@ -29,7 +29,7 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
       plantType: 'cactus',
       stage: 2,
       hydration: 60,
-      position: { x: 1, y: 3 },
+      position: { x: 2, y: 1 }, // Center-right
     },
     {
       id: '3',
@@ -37,7 +37,7 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
       plantType: 'rose',
       stage: 4,
       hydration: 90,
-      position: { x: 4, y: 1 },
+      position: { x: 1, y: 2 }, // Lower-center
     },
   ]);
 

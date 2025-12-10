@@ -15,24 +15,30 @@ export interface ScreenPosition {
   y: number;
 }
 
-export const GRID_SIZE = 6; // 6x6 grid
+export const GRID_SIZE = 4; // 4x4 grid (adjust to match your garden)
 export const MIN_ZOOM = 1.0; // No zoom out - default view is closest
 export const MAX_ZOOM = 1.6; // Max zoom still shows garden corners
+
+// Manual calibration values - adjust these to match your garden background image
+export const GRID_CONFIG = {
+  // Origin point - where grid position (0,0) should be on screen
+  originXOffset: 0, // Horizontal offset from center (positive = right, negative = left)
+  originYOffset: 100, // Vertical offset from center (positive = down, negative = up)
+
+  // Tile dimensions - size of each isometric tile
+  tileWidth: 80, // Width of diamond tile
+  tileHeight: 40, // Height of diamond tile (typically tileWidth / 2 for isometric)
+};
 
 /**
  * Get the grid origin point in screen coordinates
  * This is where grid position (0,0) maps to on screen
- * @param screenWidth Screen width in pixels
- * @param screenHeight Screen height in pixels
- * @returns Origin point in screen coordinates
  */
 export function getGridOrigin(screenWidth: number, screenHeight: number): ScreenPosition {
   'worklet';
-  // Center horizontally, position vertically to match garden background
-  // Adjust these values to align with your garden background image
   return {
-    x: screenWidth / 2,
-    y: screenHeight * 0.45, // Adjust this value to match your garden
+    x: screenWidth / 2 + GRID_CONFIG.originXOffset,
+    y: screenHeight / 2 + GRID_CONFIG.originYOffset,
   };
 }
 
@@ -134,16 +140,11 @@ export function clampZoom(zoom: number): number {
 }
 
 /**
- * Calculate optimal tile size based on screen width
+ * Get tile size from manual configuration
  */
-export function calculateTileSize(screenWidth: number): { width: number; height: number } {
-  // Leave margins on sides, divide remaining space by grid size
-  const margin = 40;
-  const availableWidth = screenWidth - margin * 2;
-
-  // Isometric tiles are 2:1 ratio (width:height)
-  const tileWidth = availableWidth / (GRID_SIZE + 2); // +2 for visual spacing
-  const tileHeight = tileWidth / 2;
-
-  return { width: tileWidth, height: tileHeight };
+export function calculateTileSize(_screenWidth: number): { width: number; height: number } {
+  return {
+    width: GRID_CONFIG.tileWidth,
+    height: GRID_CONFIG.tileHeight
+  };
 }
