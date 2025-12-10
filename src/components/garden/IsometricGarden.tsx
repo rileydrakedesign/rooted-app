@@ -33,6 +33,11 @@ export default function IsometricGarden({
   onPlantMove,
 }: IsometricGardenProps) {
   const scale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+
   const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
   const [highlightedTile, setHighlightedTile] = useState<GridPosition | null>(null);
   const [isValidPlacement, setIsValidPlacement] = useState(true);
@@ -48,6 +53,22 @@ export default function IsometricGarden({
     }
   });
 
+  // Pan gesture handler for scrolling when zoomed
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      translateX.value = savedTranslateX.value + event.translationX;
+      translateY.value = savedTranslateY.value + event.translationY;
+    })
+    .onEnd(() => {
+      // Save final position
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    });
+
   // Pinch gesture handler for zoom
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
@@ -58,8 +79,15 @@ export default function IsometricGarden({
       scale.value = withSpring(clampZoom(scale.value));
     });
 
+  // Combine gestures - allow simultaneous pinch and pan
+  const composedGesture = Gesture.Simultaneous(panGesture, pinchGesture);
+
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
   }));
 
   const handleDragStart = (plantId: string) => {
@@ -83,7 +111,7 @@ export default function IsometricGarden({
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <GestureDetector gesture={pinchGesture}>
+      <GestureDetector gesture={composedGesture}>
         <Animated.View style={[styles.gardenContainer, animatedStyle]}>
           {/* Background Layer */}
           <Image
