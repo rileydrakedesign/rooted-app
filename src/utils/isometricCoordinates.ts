@@ -16,8 +16,8 @@ export interface ScreenPosition {
 }
 
 export const GRID_SIZE = 6; // 6x6 grid
-export const MIN_ZOOM = 0.8;
-export const MAX_ZOOM = 2.0;
+export const MIN_ZOOM = 1.0; // No zoom out - default view is closest
+export const MAX_ZOOM = 1.6; // Max zoom still shows garden corners
 
 /**
  * Convert grid coordinates to screen coordinates
