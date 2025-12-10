@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { gridToScreen, GridPosition } from '../../utils/isometricCoordinates';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface GridOverlayProps {
   highlightedTile: GridPosition;
@@ -15,12 +17,18 @@ export default function GridOverlay({
   tileWidth,
   tileHeight,
 }: GridOverlayProps) {
-  const position = gridToScreen(
+  const gridPos = gridToScreen(
     highlightedTile.x,
     highlightedTile.y,
     tileWidth,
     tileHeight
   );
+
+  // Add offset to center the grid on screen
+  const position = {
+    x: SCREEN_WIDTH / 2 + gridPos.x,
+    y: SCREEN_HEIGHT * 0.4 + gridPos.y,
+  };
 
   // Create isometric diamond shape for tile highlight
   const tileSize = tileWidth * 0.8; // Slightly smaller than actual tile
