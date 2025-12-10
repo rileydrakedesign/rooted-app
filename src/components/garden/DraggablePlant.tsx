@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, Image } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -113,17 +113,12 @@ export default function DraggablePlant({
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.plantContainer, animatedStyle]}>
-        {/* Plant sprite - using emoji for now */}
-        <Text style={styles.plantEmoji}>
-          {plant.plantType === 'cactus' && '🌵'}
-          {plant.plantType === 'sunflower' && '🌻'}
-          {plant.plantType === 'fern' && '🌿'}
-          {plant.plantType === 'rose' && '🌹'}
-          {plant.plantType === 'succulent' && '🌱'}
-          {plant.plantType === 'ivy' && '🍃'}
-          {plant.plantType === 'monstera' && '🌿'}
-          {plant.plantType === 'bamboo' && '🎋'}
-        </Text>
+        {/* Plant sprite */}
+        <Image
+          source={require('../../../assets/images/plants/pixellab-Lush-and-full-potted-plant-wit-1764981154908.png')}
+          style={styles.plantImage}
+          resizeMode="contain"
+        />
 
         {/* Friend name label */}
         <Text style={styles.friendName}>{plant.friendName}</Text>
@@ -138,9 +133,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  plantEmoji: {
-    fontSize: 48,
-    textAlign: 'center',
+  plantImage: {
+    width: 80,
+    height: 80,
   },
   friendName: {
     fontSize: 10,

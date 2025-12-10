@@ -13,8 +13,33 @@ type Props = MainTabScreenProps<'Garden'> & {
 };
 
 export default function GardenScreen({ navigation, onMenuPress }: Props) {
-  // Empty plants array - ready for actual data from Supabase
-  const [plants, setPlants] = useState<Plant[]>([]);
+  // Test plants for drag functionality testing
+  const [plants, setPlants] = useState<Plant[]>([
+    {
+      id: '1',
+      friendName: 'Sarah',
+      plantType: 'fern',
+      stage: 3,
+      hydration: 75,
+      position: { x: 2, y: 2 },
+    },
+    {
+      id: '2',
+      friendName: 'Mike',
+      plantType: 'cactus',
+      stage: 2,
+      hydration: 60,
+      position: { x: 1, y: 3 },
+    },
+    {
+      id: '3',
+      friendName: 'Emma',
+      plantType: 'rose',
+      stage: 4,
+      hydration: 90,
+      position: { x: 4, y: 1 },
+    },
+  ]);
 
   const [notificationCount] = useState(0);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
