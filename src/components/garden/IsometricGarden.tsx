@@ -9,12 +9,14 @@ import Animated, {
 import { Plant } from './PlantTile';
 import DraggablePlant from './DraggablePlant';
 import GridOverlay from './GridOverlay';
+import DebugGrid from './DebugGrid';
 import { Colors } from '../../constants/theme';
 import {
   calculateTileSize,
   clampZoom,
   GridPosition,
   positionKey,
+  getGridOrigin,
 } from '../../utils/isometricCoordinates';
 
 interface IsometricGardenProps {
@@ -22,6 +24,7 @@ interface IsometricGardenProps {
   onPlantPress: (plant: Plant) => void;
   onPlantLongPress?: (plant: Plant) => void;
   onPlantMove?: (plantId: string, newPosition: GridPosition) => void;
+  showDebugGrid?: boolean; // Toggle to show grid overlay for alignment
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -31,6 +34,7 @@ export default function IsometricGarden({
   onPlantPress,
   onPlantLongPress,
   onPlantMove,
+  showDebugGrid = true, // Enable by default for now
 }: IsometricGardenProps) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -42,8 +46,9 @@ export default function IsometricGarden({
   const [highlightedTile, setHighlightedTile] = useState<GridPosition | null>(null);
   const [isValidPlacement, setIsValidPlacement] = useState(true);
 
-  // Calculate tile dimensions
+  // Calculate tile dimensions and grid origin
   const { width: tileWidth, height: tileHeight } = calculateTileSize(SCREEN_WIDTH);
+  const origin = getGridOrigin(SCREEN_WIDTH, SCREEN_HEIGHT);
 
   // Create occupied positions set for collision detection
   const occupiedPositions = new Set<string>();
@@ -157,6 +162,16 @@ export default function IsometricGarden({
               />
             ))}
           </View>
+
+          {/* Debug Grid (for alignment testing) */}
+          {showDebugGrid && (
+            <DebugGrid
+              tileWidth={tileWidth}
+              tileHeight={tileHeight}
+              offsetX={origin.x}
+              offsetY={origin.y}
+            />
+          )}
 
           {/* Grid Overlay (visible during drag) */}
           {draggedPlantId && highlightedTile && (

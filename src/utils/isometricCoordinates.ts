@@ -20,6 +20,23 @@ export const MIN_ZOOM = 1.0; // No zoom out - default view is closest
 export const MAX_ZOOM = 1.6; // Max zoom still shows garden corners
 
 /**
+ * Get the grid origin point in screen coordinates
+ * This is where grid position (0,0) maps to on screen
+ * @param screenWidth Screen width in pixels
+ * @param screenHeight Screen height in pixels
+ * @returns Origin point in screen coordinates
+ */
+export function getGridOrigin(screenWidth: number, screenHeight: number): ScreenPosition {
+  'worklet';
+  // Center horizontally, position vertically to match garden background
+  // Adjust these values to align with your garden background image
+  return {
+    x: screenWidth / 2,
+    y: screenHeight * 0.45, // Adjust this value to match your garden
+  };
+}
+
+/**
  * Convert grid coordinates to screen coordinates
  * Uses isometric projection: screenX = (gridX - gridY) * tileWidth/2
  *

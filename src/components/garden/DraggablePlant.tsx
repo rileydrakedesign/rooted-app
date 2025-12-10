@@ -13,6 +13,7 @@ import {
   screenToGrid,
   GridPosition,
   positionKey,
+  getGridOrigin,
 } from '../../utils/isometricCoordinates';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -44,6 +45,9 @@ export default function DraggablePlant({
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
 
+  // Get grid origin
+  const origin = getGridOrigin(SCREEN_WIDTH, SCREEN_HEIGHT);
+
   // Calculate base position from grid coordinates
   const gridPos = gridToScreen(
     plant.position.x,
@@ -52,10 +56,10 @@ export default function DraggablePlant({
     tileHeight
   );
 
-  // Add offset to center the grid on screen
+  // Absolute screen position
   const basePosition = {
-    x: SCREEN_WIDTH / 2 + gridPos.x,
-    y: SCREEN_HEIGHT * 0.4 + gridPos.y,
+    x: origin.x + gridPos.x,
+    y: origin.y + gridPos.y,
   };
 
   const panGesture = Gesture.Pan()
@@ -69,9 +73,9 @@ export default function DraggablePlant({
       translateX.value = event.translationX;
       translateY.value = event.translationY;
 
-      // Calculate which grid position we're over (subtract center offset)
-      const screenX = basePosition.x + event.translationX - SCREEN_WIDTH / 2;
-      const screenY = basePosition.y + event.translationY - SCREEN_HEIGHT * 0.4;
+      // Calculate which grid position we're over (subtract origin offset)
+      const screenX = basePosition.x + event.translationX - origin.x;
+      const screenY = basePosition.y + event.translationY - origin.y;
       const targetGrid = screenToGrid(screenX, screenY, tileWidth, tileHeight);
 
       // Check if valid placement
@@ -81,9 +85,9 @@ export default function DraggablePlant({
       runOnJS(onDragMove)(targetGrid, isValid);
     })
     .onEnd((event) => {
-      // Calculate final grid position (subtract center offset)
-      const screenX = basePosition.x + event.translationX - SCREEN_WIDTH / 2;
-      const screenY = basePosition.y + event.translationY - SCREEN_HEIGHT * 0.4;
+      // Calculate final grid position (subtract origin offset)
+      const screenX = basePosition.x + event.translationX - origin.x;
+      const screenY = basePosition.y + event.translationY - origin.y;
       const targetGrid = screenToGrid(screenX, screenY, tileWidth, tileHeight);
       const isValid = !occupiedPositions.has(positionKey(targetGrid));
 
@@ -109,11 +113,9 @@ export default function DraggablePlant({
   const composedGesture = Gesture.Simultaneous(tapGesture, panGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: basePosition.x + translateX.value },
-      { translateY: basePosition.y + translateY.value },
-      { scale: scale.value },
-    ],
+    left: basePosition.x + translateX.value,
+    top: basePosition.y + translateY.value,
+    transform: [{ scale: scale.value }],
     zIndex: isDragging ? 1000 : plant.position.y, // Z-sorting by Y position
     opacity: isDragging ? 0.8 : 1,
   }));

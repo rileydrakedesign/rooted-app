@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { gridToScreen, GridPosition } from '../../utils/isometricCoordinates';
+import { gridToScreen, GridPosition, getGridOrigin } from '../../utils/isometricCoordinates';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -17,6 +17,7 @@ export default function GridOverlay({
   tileWidth,
   tileHeight,
 }: GridOverlayProps) {
+  const origin = getGridOrigin(SCREEN_WIDTH, SCREEN_HEIGHT);
   const gridPos = gridToScreen(
     highlightedTile.x,
     highlightedTile.y,
@@ -24,24 +25,25 @@ export default function GridOverlay({
     tileHeight
   );
 
-  // Add offset to center the grid on screen
+  // Absolute screen position
   const position = {
-    x: SCREEN_WIDTH / 2 + gridPos.x,
-    y: SCREEN_HEIGHT * 0.4 + gridPos.y,
+    x: origin.x + gridPos.x,
+    y: origin.y + gridPos.y,
   };
 
   // Create isometric diamond shape for tile highlight
   const tileSize = tileWidth * 0.8; // Slightly smaller than actual tile
+  const diamondHeight = tileHeight * 0.8;
 
   return (
     <View
       style={[
         styles.highlight,
         {
-          left: position.x,
-          top: position.y,
+          left: position.x - tileSize / 2, // Center the diamond on the position
+          top: position.y - diamondHeight / 2,
           width: tileSize,
-          height: tileSize / 2,
+          height: diamondHeight,
           backgroundColor: isValid
             ? 'rgba(76, 175, 80, 0.4)' // Green with 40% opacity
             : 'rgba(244, 67, 54, 0.4)', // Red with 40% opacity
