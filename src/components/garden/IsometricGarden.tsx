@@ -55,18 +55,30 @@ export default function IsometricGarden({
 
   // Pan gesture handler for scrolling when zoomed
   const panGesture = Gesture.Pan()
+    .enabled(true)
     .onStart(() => {
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
     })
     .onUpdate((event) => {
-      translateX.value = savedTranslateX.value + event.translationX;
-      translateY.value = savedTranslateY.value + event.translationY;
+      // Only allow panning when zoomed in
+      if (scale.value > 1) {
+        translateX.value = savedTranslateX.value + event.translationX;
+        translateY.value = savedTranslateY.value + event.translationY;
+      }
     })
     .onEnd(() => {
-      // Save final position
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      // Reset position if zoomed out
+      if (scale.value <= 1) {
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+      } else {
+        // Save final position when zoomed in
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
+      }
     });
 
   // Pinch gesture handler for zoom
@@ -77,6 +89,14 @@ export default function IsometricGarden({
     .onEnd(() => {
       // Smooth spring back if needed
       scale.value = withSpring(clampZoom(scale.value));
+
+      // Reset position when zoomed out to default
+      if (scale.value <= 1) {
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+      }
     });
 
   // Combine gestures - allow simultaneous pinch and pan
