@@ -13,15 +13,10 @@ import {
   screenToGrid,
   GridPosition,
   positionKey,
-  getGridOrigin,
-} from '../../utils/isometricCoordinates';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+} from '../../utils/gardenPositions';
 
 interface DraggablePlantProps {
   plant: Plant;
-  tileWidth: number;
-  tileHeight: number;
   occupiedPositions: Set<string>;
   onPress: () => void;
   onDragStart: () => void;
@@ -32,8 +27,6 @@ interface DraggablePlantProps {
 
 export default function DraggablePlant({
   plant,
-  tileWidth,
-  tileHeight,
   occupiedPositions,
   onPress,
   onDragStart,
@@ -45,22 +38,8 @@ export default function DraggablePlant({
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
 
-  // Get grid origin
-  const origin = getGridOrigin(SCREEN_WIDTH, SCREEN_HEIGHT);
-
-  // Calculate base position from grid coordinates
-  const gridPos = gridToScreen(
-    plant.position.x,
-    plant.position.y,
-    tileWidth,
-    tileHeight
-  );
-
-  // Absolute screen position
-  const basePosition = {
-    x: origin.x + gridPos.x,
-    y: origin.y + gridPos.y,
-  };
+  // Get screen position for this plant's grid position
+  const basePosition = gridToScreen(plant.position.x, plant.position.y);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -73,10 +52,10 @@ export default function DraggablePlant({
       translateX.value = event.translationX;
       translateY.value = event.translationY;
 
-      // Calculate which grid position we're over (subtract origin offset)
-      const screenX = basePosition.x + event.translationX - origin.x;
-      const screenY = basePosition.y + event.translationY - origin.y;
-      const targetGrid = screenToGrid(screenX, screenY, tileWidth, tileHeight);
+      // Calculate which grid position we're over
+      const screenX = basePosition.x + event.translationX;
+      const screenY = basePosition.y + event.translationY;
+      const targetGrid = screenToGrid(screenX, screenY);
 
       // Check if valid placement
       const isValid = !occupiedPositions.has(positionKey(targetGrid));
@@ -85,10 +64,10 @@ export default function DraggablePlant({
       runOnJS(onDragMove)(targetGrid, isValid);
     })
     .onEnd((event) => {
-      // Calculate final grid position (subtract origin offset)
-      const screenX = basePosition.x + event.translationX - origin.x;
-      const screenY = basePosition.y + event.translationY - origin.y;
-      const targetGrid = screenToGrid(screenX, screenY, tileWidth, tileHeight);
+      // Calculate final grid position
+      const screenX = basePosition.x + event.translationX;
+      const screenY = basePosition.y + event.translationY;
+      const targetGrid = screenToGrid(screenX, screenY);
       const isValid = !occupiedPositions.has(positionKey(targetGrid));
 
       if (isValid) {

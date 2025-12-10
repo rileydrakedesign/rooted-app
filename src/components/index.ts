@@ -10,7 +10,7 @@ export { default as PlantTile } from './garden/PlantTile';
 export { default as PlantInfoPanel } from './garden/PlantInfoPanel';
 export { default as DraggablePlant } from './garden/DraggablePlant';
 export { default as GridOverlay } from './garden/GridOverlay';
-export { default as DebugGrid } from './garden/DebugGrid';
+export { default as PositionDebugGrid } from './garden/PositionDebugGrid';
 export type { Plant } from './garden/PlantTile';
 
 // Navigation components

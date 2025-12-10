@@ -9,15 +9,13 @@ import Animated, {
 import { Plant } from './PlantTile';
 import DraggablePlant from './DraggablePlant';
 import GridOverlay from './GridOverlay';
-import DebugGrid from './DebugGrid';
+import PositionDebugGrid from './PositionDebugGrid';
 import { Colors } from '../../constants/theme';
 import {
-  calculateTileSize,
   clampZoom,
   GridPosition,
   positionKey,
-  getGridOrigin,
-} from '../../utils/isometricCoordinates';
+} from '../../utils/gardenPositions';
 
 interface IsometricGardenProps {
   plants: Plant[];
@@ -45,10 +43,6 @@ export default function IsometricGarden({
   const [draggedPlantId, setDraggedPlantId] = useState<string | null>(null);
   const [highlightedTile, setHighlightedTile] = useState<GridPosition | null>(null);
   const [isValidPlacement, setIsValidPlacement] = useState(true);
-
-  // Calculate tile dimensions and grid origin
-  const { width: tileWidth, height: tileHeight } = calculateTileSize(SCREEN_WIDTH);
-  const origin = getGridOrigin(SCREEN_WIDTH, SCREEN_HEIGHT);
 
   // Create occupied positions set for collision detection
   const occupiedPositions = new Set<string>();
@@ -151,8 +145,6 @@ export default function IsometricGarden({
               <DraggablePlant
                 key={plant.id}
                 plant={plant}
-                tileWidth={tileWidth}
-                tileHeight={tileHeight}
                 occupiedPositions={occupiedPositions}
                 onPress={() => onPlantPress(plant)}
                 onDragStart={() => handleDragStart(plant.id)}
@@ -164,22 +156,13 @@ export default function IsometricGarden({
           </View>
 
           {/* Debug Grid (for alignment testing) */}
-          {showDebugGrid && (
-            <DebugGrid
-              tileWidth={tileWidth}
-              tileHeight={tileHeight}
-              offsetX={origin.x}
-              offsetY={origin.y}
-            />
-          )}
+          {showDebugGrid && <PositionDebugGrid />}
 
           {/* Grid Overlay (visible during drag) */}
           {draggedPlantId && highlightedTile && (
             <GridOverlay
               highlightedTile={highlightedTile}
               isValid={isValidPlacement}
-              tileWidth={tileWidth}
-              tileHeight={tileHeight}
             />
           )}
 
