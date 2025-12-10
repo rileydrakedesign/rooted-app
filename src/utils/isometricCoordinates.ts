@@ -35,6 +35,7 @@ export function gridToScreen(
   tileWidth: number,
   tileHeight: number
 ): ScreenPosition {
+  'worklet';
   const screenX = (gridX - gridY) * (tileWidth / 2);
   const screenY = (gridX + gridY) * (tileHeight / 2);
 
@@ -57,6 +58,7 @@ export function screenToGrid(
   tileWidth: number,
   tileHeight: number
 ): GridPosition {
+  'worklet';
   // Reverse isometric projection
   const gridX = (screenX / (tileWidth / 2) + screenY / (tileHeight / 2)) / 2;
   const gridY = (screenY / (tileHeight / 2) - screenX / (tileWidth / 2)) / 2;
@@ -102,6 +104,7 @@ export function isPositionOccupied(
  * Create a position key for map lookups
  */
 export function positionKey(position: GridPosition): string {
+  'worklet';
   return `${position.x},${position.y}`;
 }
 
