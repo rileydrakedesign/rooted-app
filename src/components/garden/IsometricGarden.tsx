@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -8,6 +8,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/theme';
 import GridDebugOverlay from './GridDebugOverlay';
+import DraggablePlant from './DraggablePlant';
+import { Plant, PlantType, GrowthStage } from '../../types/plant';
+import { GridPosition } from '../../utils/gardenGrid';
 
 interface IsometricGardenProps {
   showDebugGrid?: boolean; // Toggle debug overlay
@@ -26,11 +29,42 @@ function clampZoom(zoom: number): number {
 export default function IsometricGarden({
   showDebugGrid = true, // Enable by default for calibration
 }: IsometricGardenProps) {
+  // Plant state management
+  const [plants, setPlants] = useState<Plant[]>([
+    // Test plant - can be removed later
+    {
+      id: 'test-plant-1',
+      type: PlantType.TOMATO,
+      position: { x: 5, y: 5 }, // Center of grid
+      plantedAt: new Date(),
+      growthStage: GrowthStage.GROWING,
+    },
+  ]);
+
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
+
+  // Check if a grid position is occupied by any plant
+  const isPositionOccupied = (position: GridPosition, excludePlantId: string): boolean => {
+    return plants.some(
+      (plant) =>
+        plant.id !== excludePlantId &&
+        plant.position.x === position.x &&
+        plant.position.y === position.y
+    );
+  };
+
+  // Handle plant position changes
+  const handlePlantPositionChange = (plantId: string, newPosition: GridPosition) => {
+    setPlants((prevPlants) =>
+      prevPlants.map((plant) =>
+        plant.id === plantId ? { ...plant, position: newPosition } : plant
+      )
+    );
+  };
 
   // Pan gesture handler for scrolling when zoomed
   const panGesture = Gesture.Pan()
@@ -100,6 +134,19 @@ export default function IsometricGarden({
             resizeMode="contain"
           />
 
+          {/* Plants Layer */}
+          <View style={styles.plantsLayer}>
+            {plants.map((plant) => (
+              <DraggablePlant
+                key={plant.id}
+                plant={plant}
+                image={require('../../../assets/images/plants/pixellab-Lush-and-full-potted-plant-wit-1764981154908.png')}
+                onPositionChange={handlePlantPositionChange}
+                isPositionOccupied={isPositionOccupied}
+              />
+            ))}
+          </View>
+
           {/* Debug Grid Overlay */}
           {showDebugGrid && <GridDebugOverlay />}
 
@@ -128,6 +175,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backgroundImage: {
+    position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.8,
+  },
+  plantsLayer: {
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.8,
