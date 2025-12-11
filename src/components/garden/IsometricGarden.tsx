@@ -7,9 +7,10 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/theme';
+import GridDebugOverlay from './GridDebugOverlay';
 
 interface IsometricGardenProps {
-  // Future props will go here
+  showDebugGrid?: boolean; // Toggle debug overlay
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -22,7 +23,9 @@ function clampZoom(zoom: number): number {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
 }
 
-export default function IsometricGarden({}: IsometricGardenProps) {
+export default function IsometricGarden({
+  showDebugGrid = true, // Enable by default for calibration
+}: IsometricGardenProps) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -96,6 +99,9 @@ export default function IsometricGarden({}: IsometricGardenProps) {
             style={styles.backgroundImage}
             resizeMode="contain"
           />
+
+          {/* Debug Grid Overlay */}
+          {showDebugGrid && <GridDebugOverlay />}
 
           {/* Foreground Layer */}
           <View style={styles.foregroundImage} pointerEvents="none">
