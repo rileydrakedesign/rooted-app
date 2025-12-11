@@ -18,23 +18,25 @@ export interface ScreenPosition {
   y: number; // Screen Y coordinate (pixels)
 }
 
-// Grid configuration - adjust these to match the visual grid in the background image
+// Grid configuration - calibrated to match the visual grid in garden.background1.png
 export const GRID_CONFIG = {
-  rows: 8,    // Number of rows in the grid
-  cols: 8,    // Number of columns in the grid
+  rows: 10,    // Number of rows in the grid
+  cols: 10,    // Number of columns in the grid
 
-  // Garden center point on screen (relative to screen dimensions)
+  // Garden center point on screen
+  // The garden image is positioned in the upper-middle of the screen
   centerX: SCREEN_WIDTH / 2,
-  centerY: SCREEN_HEIGHT / 2,
+  centerY: SCREEN_HEIGHT * 0.38, // Garden is higher than screen center
 
-  // Tile dimensions in pixels (for isometric grid)
-  // These create the diamond shape: horizontal spacing and vertical spacing
-  tileWidth: 50,   // Horizontal distance between tile centers
-  tileHeight: 25,  // Vertical distance between tile centers (typically tileWidth / 2)
+  // Tile dimensions in pixels (for isometric 2:1 grid)
+  // Measured from the visual grid overlay in the background
+  tileWidth: 60,   // Horizontal distance between tile centers
+  tileHeight: 30,  // Vertical distance between tile centers (tileWidth / 2)
 
-  // Offset from center to the grid origin (top-left tile at 0,0)
+  // Offset from garden center to the grid origin (top-left tile at 0,0)
+  // The origin (0,0) should be at the top-left of the playable grid area
   originOffsetX: 0,
-  originOffsetY: -50,
+  originOffsetY: -130, // Move origin up to top-left of grid
 };
 
 /**
