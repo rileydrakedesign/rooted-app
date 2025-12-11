@@ -1,26 +1,25 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { getAllPositions, gridToScreen } from '../../utils/gardenGrid';
+import { gridToScreen } from '../../utils/gardenGrid';
 
 /**
- * Debug overlay that shows circles at each grid position
- * Use this to verify the grid alignment with the background image
+ * Simple debug overlay - shows just 5 reference points
+ * Once these align correctly, we can add the full grid
  */
 export default function GridDebugOverlay() {
-  const positions = getAllPositions();
+  // Test with just 5 key positions first
+  const testPositions = [
+    { x: 0, y: 0, label: '0,0 (top-left)', color: '#ff0000' },
+    { x: 9, y: 0, label: '9,0 (top-right)', color: '#ff0000' },
+    { x: 5, y: 5, label: '5,5 (center)', color: '#ff00ff' },
+    { x: 0, y: 9, label: '0,9 (bottom-left)', color: '#ff0000' },
+    { x: 9, y: 9, label: '9,9 (bottom-right)', color: '#ff0000' },
+  ];
 
   return (
     <View style={styles.container} pointerEvents="none">
-      {positions.map((pos) => {
+      {testPositions.map((pos) => {
         const screen = gridToScreen(pos.x, pos.y);
-
-        // Highlight corners and center for reference
-        const isCorner =
-          (pos.x === 0 && pos.y === 0) ||
-          (pos.x === 9 && pos.y === 0) ||
-          (pos.x === 0 && pos.y === 9) ||
-          (pos.x === 9 && pos.y === 9);
-        const isCenter = pos.x === 4 && pos.y === 4 || pos.x === 5 && pos.y === 5;
 
         return (
           <View
@@ -28,17 +27,13 @@ export default function GridDebugOverlay() {
             style={[
               styles.dot,
               {
-                left: screen.x - 8,
-                top: screen.y - 8,
-                backgroundColor: isCenter
-                  ? '#ff00ff' // Magenta for center
-                  : isCorner
-                  ? '#ff0000' // Red for corners
-                  : '#00ff00', // Green for regular positions
+                left: screen.x - 6,
+                top: screen.y - 6,
+                backgroundColor: pos.color,
               },
             ]}
           >
-            <Text style={styles.label}>{`${pos.x},${pos.y}`}</Text>
+            <Text style={styles.label}>{pos.label}</Text>
           </View>
         );
       })}
@@ -54,23 +49,23 @@ const styles = StyleSheet.create({
   },
   dot: {
     position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   label: {
     position: 'absolute',
-    top: 18,
-    fontSize: 9,
+    top: 15,
+    left: -20,
+    fontSize: 10,
     fontWeight: 'bold',
-    color: '#000',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingHorizontal: 2,
-    paddingVertical: 1,
-    borderRadius: 2,
+    color: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 3,
+    minWidth: 60,
   },
 });
