@@ -92,7 +92,7 @@ export default function IsometricGarden({}: IsometricGardenProps) {
         <Animated.View style={[styles.gardenContainer, animatedStyle]}>
           {/* Background Layer */}
           <Image
-            source={require('../../../assets/images/garden/garden-background.png')}
+            source={require('../../../assets/images/garden/garden.background1.png')}
             style={styles.backgroundImage}
             resizeMode="contain"
           />
@@ -100,7 +100,7 @@ export default function IsometricGarden({}: IsometricGardenProps) {
           {/* Foreground Layer */}
           <View style={styles.foregroundImage} pointerEvents="none">
             <Image
-              source={require('../../../assets/images/garden/garden-foreground.png')}
+              source={require('../../../assets/images/garden/garden-foreground1.png')}
               style={{ width: '100%', height: '100%' }}
               resizeMode="contain"
             />
