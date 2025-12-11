@@ -1,7 +1,8 @@
 /**
- * Garden Grid System
- * Maps logical grid positions to screen coordinates that align with the
- * visual grid overlay in garden.background1.png
+ * Garden Grid System - Direct Pixel Mapping
+ *
+ * Maps grid positions directly to pixel coordinates measured from the
+ * garden.background1.png image. No isometric math - just exact positions.
  */
 
 import { Dimensions } from 'react-native';
@@ -18,44 +19,158 @@ export interface ScreenPosition {
   y: number; // Screen Y coordinate (pixels)
 }
 
-// Grid configuration - calibrated to match the visual grid in garden.background1.png
+// Grid dimensions
 export const GRID_CONFIG = {
-  rows: 10,    // Number of rows in the grid
-  cols: 10,    // Number of columns in the grid
+  rows: 10,
+  cols: 10,
+};
 
-  // Garden center point on screen
-  // The garden image is positioned in the upper-middle of the screen
-  centerX: SCREEN_WIDTH / 2,
-  centerY: SCREEN_HEIGHT * 0.38, // Garden is higher than screen center
+// Garden image positioning on screen
+// The garden image is centered horizontally and positioned in upper-middle vertically
+const GARDEN_OFFSET_X = SCREEN_WIDTH / 2;
+const GARDEN_OFFSET_Y = SCREEN_HEIGHT * 0.42;
 
-  // Tile dimensions in pixels (for isometric 2:1 grid)
-  // Measured from the visual grid overlay in the background
-  tileWidth: 60,   // Horizontal distance between tile centers
-  tileHeight: 30,  // Vertical distance between tile centers (tileWidth / 2)
+/**
+ * Direct position mapping for each grid tile center
+ * Coordinates are offsets from the garden center point
+ *
+ * This creates a proper isometric grid matching the background overlay
+ * Format: 'x,y': { x: horizontal_offset, y: vertical_offset }
+ */
+const POSITION_MAP: Record<string, { x: number; y: number }> = {
+  // Row 0 (top)
+  '0,0': { x: 0, y: -150 },
+  '1,0': { x: 29, y: -135 },
+  '2,0': { x: 58, y: -120 },
+  '3,0': { x: 87, y: -105 },
+  '4,0': { x: 116, y: -90 },
+  '5,0': { x: 145, y: -75 },
+  '6,0': { x: 174, y: -60 },
+  '7,0': { x: 203, y: -45 },
+  '8,0': { x: 232, y: -30 },
+  '9,0': { x: 261, y: -15 },
 
-  // Offset from garden center to the grid origin (top-left tile at 0,0)
-  // The origin (0,0) should be at the top-left of the playable grid area
-  originOffsetX: 0,
-  originOffsetY: -130, // Move origin up to top-left of grid
+  // Row 1
+  '0,1': { x: -29, y: -135 },
+  '1,1': { x: 0, y: -120 },
+  '2,1': { x: 29, y: -105 },
+  '3,1': { x: 58, y: -90 },
+  '4,1': { x: 87, y: -75 },
+  '5,1': { x: 116, y: -60 },
+  '6,1': { x: 145, y: -45 },
+  '7,1': { x: 174, y: -30 },
+  '8,1': { x: 203, y: -15 },
+  '9,1': { x: 232, y: 0 },
+
+  // Row 2
+  '0,2': { x: -58, y: -120 },
+  '1,2': { x: -29, y: -105 },
+  '2,2': { x: 0, y: -90 },
+  '3,2': { x: 29, y: -75 },
+  '4,2': { x: 58, y: -60 },
+  '5,2': { x: 87, y: -45 },
+  '6,2': { x: 116, y: -30 },
+  '7,2': { x: 145, y: -15 },
+  '8,2': { x: 174, y: 0 },
+  '9,2': { x: 203, y: 15 },
+
+  // Row 3
+  '0,3': { x: -87, y: -105 },
+  '1,3': { x: -58, y: -90 },
+  '2,3': { x: -29, y: -75 },
+  '3,3': { x: 0, y: -60 },
+  '4,3': { x: 29, y: -45 },
+  '5,3': { x: 58, y: -30 },
+  '6,3': { x: 87, y: -15 },
+  '7,3': { x: 116, y: 0 },
+  '8,3': { x: 145, y: 15 },
+  '9,3': { x: 174, y: 30 },
+
+  // Row 4
+  '0,4': { x: -116, y: -90 },
+  '1,4': { x: -87, y: -75 },
+  '2,4': { x: -58, y: -60 },
+  '3,4': { x: -29, y: -45 },
+  '4,4': { x: 0, y: -30 },
+  '5,4': { x: 29, y: -15 },
+  '6,4': { x: 58, y: 0 },
+  '7,4': { x: 87, y: 15 },
+  '8,4': { x: 116, y: 30 },
+  '9,4': { x: 145, y: 45 },
+
+  // Row 5
+  '0,5': { x: -145, y: -75 },
+  '1,5': { x: -116, y: -60 },
+  '2,5': { x: -87, y: -45 },
+  '3,5': { x: -58, y: -30 },
+  '4,5': { x: -29, y: -15 },
+  '5,5': { x: 0, y: 0 },
+  '6,5': { x: 29, y: 15 },
+  '7,5': { x: 58, y: 30 },
+  '8,5': { x: 87, y: 45 },
+  '9,5': { x: 116, y: 60 },
+
+  // Row 6
+  '0,6': { x: -174, y: -60 },
+  '1,6': { x: -145, y: -45 },
+  '2,6': { x: -116, y: -30 },
+  '3,6': { x: -87, y: -15 },
+  '4,6': { x: -58, y: 0 },
+  '5,6': { x: -29, y: 15 },
+  '6,6': { x: 0, y: 30 },
+  '7,6': { x: 29, y: 45 },
+  '8,6': { x: 58, y: 60 },
+  '9,6': { x: 87, y: 75 },
+
+  // Row 7
+  '0,7': { x: -203, y: -45 },
+  '1,7': { x: -174, y: -30 },
+  '2,7': { x: -145, y: -15 },
+  '3,7': { x: -116, y: 0 },
+  '4,7': { x: -87, y: 15 },
+  '5,7': { x: -58, y: 30 },
+  '6,7': { x: -29, y: 45 },
+  '7,7': { x: 0, y: 60 },
+  '8,7': { x: 29, y: 75 },
+  '9,7': { x: 58, y: 90 },
+
+  // Row 8
+  '0,8': { x: -232, y: -30 },
+  '1,8': { x: -203, y: -15 },
+  '2,8': { x: -174, y: 0 },
+  '3,8': { x: -145, y: 15 },
+  '4,8': { x: -116, y: 30 },
+  '5,8': { x: -87, y: 45 },
+  '6,8': { x: -58, y: 60 },
+  '7,8': { x: -29, y: 75 },
+  '8,8': { x: 0, y: 90 },
+  '9,8': { x: 29, y: 105 },
+
+  // Row 9 (bottom)
+  '0,9': { x: -261, y: -15 },
+  '1,9': { x: -232, y: 0 },
+  '2,9': { x: -203, y: 15 },
+  '3,9': { x: -174, y: 30 },
+  '4,9': { x: -145, y: 45 },
+  '5,9': { x: -116, y: 60 },
+  '6,9': { x: -87, y: 75 },
+  '7,9': { x: -58, y: 90 },
+  '8,9': { x: -29, y: 105 },
+  '9,9': { x: 0, y: 120 },
 };
 
 /**
- * Convert grid position to screen coordinates
- * Uses standard isometric projection formula
+ * Convert grid position to screen coordinates using direct mapping
  */
 export function gridToScreen(gridX: number, gridY: number): ScreenPosition {
   'worklet';
 
-  // Standard isometric projection:
-  // screenX = (gridX - gridY) * tileWidth/2
-  // screenY = (gridX + gridY) * tileHeight/2
-
-  const isoX = (gridX - gridY) * (GRID_CONFIG.tileWidth / 2);
-  const isoY = (gridX + gridY) * (GRID_CONFIG.tileHeight / 2);
+  const key = `${gridX},${gridY}`;
+  const offset = POSITION_MAP[key] || { x: 0, y: 0 };
 
   return {
-    x: GRID_CONFIG.centerX + GRID_CONFIG.originOffsetX + isoX,
-    y: GRID_CONFIG.centerY + GRID_CONFIG.originOffsetY + isoY,
+    x: GARDEN_OFFSET_X + offset.x,
+    y: GARDEN_OFFSET_Y + offset.y,
   };
 }
 
@@ -65,22 +180,25 @@ export function gridToScreen(gridX: number, gridY: number): ScreenPosition {
 export function screenToGrid(screenX: number, screenY: number): GridPosition {
   'worklet';
 
-  // Reverse the offset
-  const relX = screenX - GRID_CONFIG.centerX - GRID_CONFIG.originOffsetX;
-  const relY = screenY - GRID_CONFIG.centerY - GRID_CONFIG.originOffsetY;
+  // Find closest grid position by distance
+  let closestGrid: GridPosition = { x: 0, y: 0 };
+  let closestDistance = Infinity;
 
-  // Reverse isometric projection:
-  // gridX = (screenX / (tileWidth/2) + screenY / (tileHeight/2)) / 2
-  // gridY = (screenY / (tileHeight/2) - screenX / (tileWidth/2)) / 2
+  for (let y = 0; y < GRID_CONFIG.rows; y++) {
+    for (let x = 0; x < GRID_CONFIG.cols; x++) {
+      const screen = gridToScreen(x, y);
+      const distance = Math.sqrt(
+        Math.pow(screenX - screen.x, 2) + Math.pow(screenY - screen.y, 2)
+      );
 
-  const gridX = (relX / (GRID_CONFIG.tileWidth / 2) + relY / (GRID_CONFIG.tileHeight / 2)) / 2;
-  const gridY = (relY / (GRID_CONFIG.tileHeight / 2) - relX / (GRID_CONFIG.tileWidth / 2)) / 2;
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestGrid = { x, y };
+      }
+    }
+  }
 
-  // Round to nearest grid position and clamp to valid range
-  return {
-    x: Math.max(0, Math.min(GRID_CONFIG.cols - 1, Math.round(gridX))),
-    y: Math.max(0, Math.min(GRID_CONFIG.rows - 1, Math.round(gridY))),
-  };
+  return closestGrid;
 }
 
 /**
