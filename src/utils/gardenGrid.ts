@@ -25,19 +25,47 @@ export const GRID_CONFIG = {
   cols: 10,
 };
 
-// Garden image positioning on screen
-// The garden image is centered horizontally and positioned in upper-middle vertically
-const GARDEN_OFFSET_X = SCREEN_WIDTH / 2;
-const GARDEN_OFFSET_Y = SCREEN_HEIGHT * 0.42;
+/**
+ * Garden image rendering calculations
+ * Source image: 1024x1024px (square)
+ * Rendered with resizeMode="contain" in a container of width=SCREEN_WIDTH, height=SCREEN_HEIGHT*0.8
+ *
+ * Since the image is square and container is wider than tall on most phones,
+ * the image scales to fit the screen width.
+ */
+
+// Image scaling factor (source 1024px -> screen width)
+const IMAGE_SCALE = SCREEN_WIDTH / 1024;
+
+// Actual rendered image dimensions
+const RENDERED_WIDTH = SCREEN_WIDTH;
+const RENDERED_HEIGHT = SCREEN_WIDTH; // Square image maintains aspect ratio
+
+// Container dimensions (where the image is placed)
+const CONTAINER_HEIGHT = SCREEN_HEIGHT * 0.8;
+
+// Vertical offset due to centering within container
+const VERTICAL_OFFSET = (CONTAINER_HEIGHT - RENDERED_HEIGHT) / 2;
+
+// Top-left corner of the rendered image on screen
+const IMAGE_TOP = VERTICAL_OFFSET;
+const IMAGE_LEFT = 0;
+
+// Function to convert source image coordinates to screen coordinates
+function imageToScreen(imageX: number, imageY: number): ScreenPosition {
+  'worklet';
+  return {
+    x: IMAGE_LEFT + imageX * IMAGE_SCALE,
+    y: IMAGE_TOP + imageY * IMAGE_SCALE,
+  };
+}
 
 /**
- * Direct position mapping for each grid tile center
- * Coordinates are offsets from the garden center point
- *
- * This creates a proper isometric grid matching the background overlay
- * Format: 'x,y': { x: horizontal_offset, y: vertical_offset }
+ * Grid intersection coordinates in the SOURCE IMAGE (1024x1024px)
+ * Measured directly from garden.background1.png
+ * These will be scaled to screen coordinates using imageToScreen()
  */
-const POSITION_MAP: Record<string, { x: number; y: number }> = {
+const IMAGE_GRID_POSITIONS: Record<string, { x: number; y: number }> = {
   // Row 0 (top)
   '0,0': { x: 0, y: -150 },
   '1,0': { x: 29, y: -135 },
