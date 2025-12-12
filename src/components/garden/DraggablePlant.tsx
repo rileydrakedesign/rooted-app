@@ -13,6 +13,7 @@ import { gridToScreen, screenToGrid, GridPosition } from '../../utils/gardenGrid
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_SCALE = SCREEN_WIDTH / 1024;
 const PLANT_SIZE = 120 * IMAGE_SCALE; // Doubled from 60 to 120
+const MAX_SNAP_DISTANCE = 80 * IMAGE_SCALE; // Maximum distance for valid plant placement
 
 interface DraggablePlantProps {
   plant: Plant;
@@ -36,16 +37,26 @@ export default function DraggablePlant({
   // Handler that runs on JS thread to check collision and snap to position
   const handleDragEnd = (finalX: number, finalY: number) => {
     const gridPos = screenToGrid(finalX, finalY);
+    const targetScreenPos = gridToScreen(gridPos.x, gridPos.y);
+
+    // Calculate distance from drop point to nearest grid intersection
+    const distance = Math.sqrt(
+      Math.pow(finalX - targetScreenPos.x, 2) + Math.pow(finalY - targetScreenPos.y, 2)
+    );
+
     const occupied = isPositionOccupied(gridPos, plant.id);
 
-    if (!occupied) {
-      // Valid position - snap to grid
-      const newScreenPos = gridToScreen(gridPos.x, gridPos.y);
-      translateX.value = withSpring(newScreenPos.x);
-      translateY.value = withSpring(newScreenPos.y);
+    // Restrict placement on front row (y=9) - too close to user
+    const isFrontRow = gridPos.y >= 9;
+
+    // Only snap if within valid distance, position is not occupied, and not in front row
+    if (!occupied && distance <= MAX_SNAP_DISTANCE && !isFrontRow) {
+      // Valid position and close enough to grid - snap to grid
+      translateX.value = withSpring(targetScreenPos.x);
+      translateY.value = withSpring(targetScreenPos.y);
       onPositionChange(plant.id, gridPos);
     } else {
-      // Invalid position - snap back to original
+      // Invalid position or too far from grid - snap back to original
       translateX.value = withSpring(screenPos.x);
       translateY.value = withSpring(screenPos.y);
     }

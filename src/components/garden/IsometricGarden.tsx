@@ -27,7 +27,7 @@ function clampZoom(zoom: number): number {
 }
 
 export default function IsometricGarden({
-  showDebugGrid = true, // Enable by default for calibration
+  showDebugGrid = false, // Disabled by default
 }: IsometricGardenProps) {
   // Plant state management
   const [plants, setPlants] = useState<Plant[]>([
@@ -178,15 +178,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.8,
+    zIndex: 1,
   },
   plantsLayer: {
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.8,
+    zIndex: 2,
   },
   foregroundImage: {
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.8,
+    zIndex: 4,
   },
 });

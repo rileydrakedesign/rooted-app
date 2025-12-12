@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { gridToScreen, GRID_CONFIG } from '../../utils/gardenGrid';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /**
  * Grid overlay with lines connecting coordinates
@@ -83,8 +85,9 @@ export default function GridDebugOverlay() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.8,
+    zIndex: 3,
   },
   line: {
     position: 'absolute',
