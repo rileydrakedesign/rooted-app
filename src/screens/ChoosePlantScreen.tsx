@@ -1,23 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import { Fonts, FontSizes } from '../constants/fonts';
 import { PixelButton, ProgressBar, BackButton } from '../components';
+import { useGarden } from '../contexts/GardenContext';
+import { Plant } from '../components/garden/PlantTile';
 
 type Props = MainTabScreenProps<'ChoosePlant'>;
 
 const PLANT_TYPES = [
-  { name: 'Cactus', emoji: '🌵', description: 'Desert • Low Maintenance' },
-  { name: 'Sunflower', emoji: '🌻', description: 'Sunny • Cheerful' },
-  { name: 'Fern', emoji: '🌿', description: 'Tropical • Lush' },
-  { name: 'Rose', emoji: '🌹', description: 'Classic • Elegant' },
-  { name: 'Tulip', emoji: '🌷', description: 'Spring • Vibrant' },
-  { name: 'Daisy', emoji: '🌼', description: 'Garden • Simple' },
-  { name: 'Orchid', emoji: '🌸', description: 'Exotic • Delicate' },
-  { name: 'Lavender', emoji: '🪻', description: 'Calming • Fragrant' },
+  {
+    name: 'Cactus',
+    image: require('../../assets/images/plants/cactus-plant.png'),
+    description: 'Desert • Low Maintenance'
+  },
+  {
+    name: 'Sunflower',
+    image: require('../../assets/images/plants/sunflower-plant.png'),
+    description: 'Sunny • Cheerful'
+  },
+  {
+    name: 'Monstera',
+    image: require('../../assets/images/plants/monstera-plant.png'),
+    description: 'Tropical • Lush'
+  },
+  {
+    name: 'Ficus',
+    image: require('../../assets/images/plants/ficus-plant.png'),
+    description: 'Classic • Elegant'
+  },
 ];
 
-export default function ChoosePlantScreen({ navigation }: Props) {
+export default function ChoosePlantScreen({ navigation, route }: Props) {
+  const { friendName } = route.params;
+  const { addPlant } = useGarden();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const currentPlant = PLANT_TYPES[currentIndex];
@@ -31,8 +47,17 @@ export default function ChoosePlantScreen({ navigation }: Props) {
   };
 
   const handleSelect = () => {
-    // TODO: Save plant selection and navigate to next step
-    // For now, navigate back to Garden
+    // Create plant for friend - map to correct plant type
+    const plantTypeMap: Record<string, Plant['plantType']> = {
+      'Cactus': 'cactus',
+      'Sunflower': 'sunflower',
+      'Monstera': 'monstera',
+      'Ficus': 'fern', // Using fern as closest match
+    };
+
+    const plantType = plantTypeMap[currentPlant.name] || 'cactus';
+    addPlant(friendName, plantType, currentPlant.image);
+    // Navigate back to Garden
     navigation.navigate('Garden');
   };
 
@@ -60,7 +85,7 @@ export default function ChoosePlantScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <View style={styles.plantDisplay}>
-            <Text style={styles.plantEmoji}>{currentPlant.emoji}</Text>
+            <Image source={currentPlant.image} style={styles.plantImage} resizeMode="contain" />
             <Text style={styles.plantName}>{currentPlant.name}</Text>
           </View>
 
@@ -153,8 +178,9 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#8B4513',
   },
-  plantEmoji: {
-    fontSize: 80,
+  plantImage: {
+    width: 120,
+    height: 120,
   },
   plantName: {
     fontSize: FontSizes.bodyLarge,

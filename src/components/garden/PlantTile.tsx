@@ -12,6 +12,7 @@ export interface Plant {
     x: number; // 0-5 (grid coordinate)
     y: number; // 0-5 (grid coordinate)
   };
+  image?: any; // Optional image asset
 }
 
 interface PlantTileProps {
@@ -22,7 +23,7 @@ interface PlantTileProps {
 }
 
 // Plant emoji mapping by type
-const PLANT_EMOJIS: Record<Plant['plantType'], string> = {
+export const PLANT_EMOJIS: Record<Plant['plantType'], string> = {
   cactus: '🌵',
   sunflower: '🌻',
   fern: '🌿',

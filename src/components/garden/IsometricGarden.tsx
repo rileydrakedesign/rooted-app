@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -9,8 +9,10 @@ import Animated, {
 import { Colors } from '../../constants/theme';
 import GridDebugOverlay from './GridDebugOverlay';
 import DraggablePlant from './DraggablePlant';
-import { Plant, PlantType, GrowthStage } from '../../types/plant';
+import PlantInfoPanel from './PlantInfoPanel';
 import { GridPosition } from '../../utils/gardenGrid';
+import { useGarden } from '../../contexts/GardenContext';
+import { Plant } from '../garden/PlantTile';
 
 interface IsometricGardenProps {
   showDebugGrid?: boolean; // Toggle debug overlay
@@ -29,17 +31,8 @@ function clampZoom(zoom: number): number {
 export default function IsometricGarden({
   showDebugGrid = false, // Disabled by default
 }: IsometricGardenProps) {
-  // Plant state management
-  const [plants, setPlants] = useState<Plant[]>([
-    // Test plant - can be removed later
-    {
-      id: 'test-plant-1',
-      type: PlantType.TOMATO,
-      position: { x: 5, y: 5 }, // Center of grid
-      plantedAt: new Date(),
-      growthStage: GrowthStage.GROWING,
-    },
-  ]);
+  // Get plants and functions from context
+  const { plants, updatePlantPosition, selectedPlant, setSelectedPlant } = useGarden();
 
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -47,7 +40,7 @@ export default function IsometricGarden({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
-  // Check if a grid position is occupied by any plant
+  // Check if a grid position is occupied by any plant (excluding the one being moved)
   const isPositionOccupied = (position: GridPosition, excludePlantId: string): boolean => {
     return plants.some(
       (plant) =>
@@ -59,11 +52,38 @@ export default function IsometricGarden({
 
   // Handle plant position changes
   const handlePlantPositionChange = (plantId: string, newPosition: GridPosition) => {
-    setPlants((prevPlants) =>
-      prevPlants.map((plant) =>
-        plant.id === plantId ? { ...plant, position: newPosition } : plant
-      )
-    );
+    updatePlantPosition(plantId, newPosition);
+  };
+
+  // Handle plant tap to show friend info
+  const handlePlantTap = (plant: Plant) => {
+    setSelectedPlant(plant);
+  };
+
+  // Handle closing plant info panel
+  const handleClosePanel = () => {
+    setSelectedPlant(null);
+  };
+
+  // Placeholder handlers for panel actions
+  const handleCall = () => {
+    console.log('Call:', selectedPlant?.friendName);
+    setSelectedPlant(null);
+  };
+
+  const handleText = () => {
+    console.log('Text:', selectedPlant?.friendName);
+    setSelectedPlant(null);
+  };
+
+  const handleLogInteraction = () => {
+    console.log('Log interaction:', selectedPlant?.friendName);
+    setSelectedPlant(null);
+  };
+
+  const handleEditFriend = () => {
+    console.log('Edit friend:', selectedPlant?.friendName);
+    setSelectedPlant(null);
   };
 
   // Pan gesture handler for scrolling when zoomed
@@ -140,9 +160,9 @@ export default function IsometricGarden({
               <DraggablePlant
                 key={plant.id}
                 plant={plant}
-                image={require('../../../assets/images/plants/pixellab-Lush-and-full-potted-plant-wit-1764981154908.png')}
                 onPositionChange={handlePlantPositionChange}
                 isPositionOccupied={isPositionOccupied}
+                onTap={handlePlantTap}
               />
             ))}
           </View>
@@ -160,6 +180,17 @@ export default function IsometricGarden({
           </View>
         </Animated.View>
       </GestureDetector>
+
+      {/* Plant Info Panel */}
+      <PlantInfoPanel
+        visible={selectedPlant !== null}
+        plant={selectedPlant}
+        onClose={handleClosePanel}
+        onCall={handleCall}
+        onText={handleText}
+        onLogInteraction={handleLogInteraction}
+        onEditFriend={handleEditFriend}
+      />
     </GestureHandlerRootView>
   );
 }

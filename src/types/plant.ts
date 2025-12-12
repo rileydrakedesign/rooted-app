@@ -10,6 +10,8 @@ export interface Plant {
   position: GridPosition;
   plantedAt: Date;
   growthStage: GrowthStage;
+  friendName?: string; // Name of the friend associated with this plant
+  image: any; // Image source for the plant
 }
 
 export enum PlantType {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,125 +9,20 @@ import {
 } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import { Colors } from '../constants/theme';
+import { useFriends, Friend } from '../contexts/FriendsContext';
 
 type Props = MainTabScreenProps<'Friends'> & {
   onMenuPress?: () => void;
 };
 
-interface Friend {
-  id: string;
-  friendName: string;
-  plantType: string;
-  plantEmoji: string;
-  hydration: number;
-  lastContact: string;
-}
-
 export default function FriendsScreen({ navigation, onMenuPress }: Props) {
-  // Mock data - will be replaced with actual data from Supabase
-  const [needsAttention] = useState<Friend[]>([
-    {
-      id: '1',
-      friendName: 'Sarah Johnson',
-      plantType: 'cactus',
-      plantEmoji: '🌵',
-      hydration: 45,
-      lastContact: '2 days ago',
-    },
-    {
-      id: '2',
-      friendName: 'Jake Williams',
-      plantType: 'sunflower',
-      plantEmoji: '🌻',
-      hydration: 15,
-      lastContact: '5 days ago',
-    },
-  ]);
+  const { friends } = useFriends();
 
-  const [healthyFriends] = useState<Friend[]>([
-    {
-      id: '3',
-      friendName: 'Alex',
-      plantType: 'fern',
-      plantEmoji: '🌿',
-      hydration: 90,
-      lastContact: 'Yesterday',
-    },
-    {
-      id: '4',
-      friendName: 'Morgan',
-      plantType: 'rose',
-      plantEmoji: '🌹',
-      hydration: 85,
-      lastContact: '1 day ago',
-    },
-    {
-      id: '5',
-      friendName: 'Taylor',
-      plantType: 'tulip',
-      plantEmoji: '🌷',
-      hydration: 80,
-      lastContact: '2 days ago',
-    },
-    {
-      id: '6',
-      friendName: 'Jordan',
-      plantType: 'daisy',
-      plantEmoji: '🌼',
-      hydration: 75,
-      lastContact: '2 days ago',
-    },
-    {
-      id: '7',
-      friendName: 'Casey',
-      plantType: 'lily',
-      plantEmoji: '🌺',
-      hydration: 70,
-      lastContact: '3 days ago',
-    },
-    {
-      id: '8',
-      friendName: 'Riley',
-      plantType: 'orchid',
-      plantEmoji: '🌸',
-      hydration: 95,
-      lastContact: 'Today',
-    },
-    {
-      id: '9',
-      friendName: 'Avery',
-      plantType: 'hibiscus',
-      plantEmoji: '🏵️',
-      hydration: 88,
-      lastContact: '1 day ago',
-    },
-    {
-      id: '10',
-      friendName: 'Quinn',
-      plantType: 'cherry blossom',
-      plantEmoji: '🌸',
-      hydration: 92,
-      lastContact: 'Yesterday',
-    },
-    {
-      id: '11',
-      friendName: 'Sage',
-      plantType: 'lavender',
-      plantEmoji: '🪻',
-      hydration: 78,
-      lastContact: '2 days ago',
-    },
-    {
-      id: '12',
-      friendName: 'River',
-      plantType: 'poppy',
-      plantEmoji: '🌺',
-      hydration: 83,
-      lastContact: '1 day ago',
-    },
-  ]);
+  // Separate friends into categories based on hydration
+  const needsAttention = friends.filter((friend) => friend.hydration < 60);
+  const healthyFriends = friends.filter((friend) => friend.hydration >= 60);
 
-  const totalFriends = needsAttention.length + healthyFriends.length;
+  const totalFriends = friends.length;
   const maxFriends = 20;
 
   const handleMenuPress = () => {
@@ -264,11 +159,32 @@ export default function FriendsScreen({ navigation, onMenuPress }: Props) {
 
               {/* Collapsed view showing first 2 names + count */}
               <View style={styles.healthyCard}>
-                <Text style={styles.healthyList}>
-                  {healthyFriends[0].plantEmoji} {healthyFriends[0].friendName} • {' '}
-                  {healthyFriends[1].plantEmoji} {healthyFriends[1].friendName} • ... ({healthyFriends.length - 2} more)
-                </Text>
+                {healthyFriends.length === 1 ? (
+                  <Text style={styles.healthyList}>
+                    {healthyFriends[0].plantEmoji} {healthyFriends[0].friendName}
+                  </Text>
+                ) : healthyFriends.length === 2 ? (
+                  <Text style={styles.healthyList}>
+                    {healthyFriends[0].plantEmoji} {healthyFriends[0].friendName} • {' '}
+                    {healthyFriends[1].plantEmoji} {healthyFriends[1].friendName}
+                  </Text>
+                ) : (
+                  <Text style={styles.healthyList}>
+                    {healthyFriends[0].plantEmoji} {healthyFriends[0].friendName} • {' '}
+                    {healthyFriends[1].plantEmoji} {healthyFriends[1].friendName} • ... ({healthyFriends.length - 2} more)
+                  </Text>
+                )}
               </View>
+            </View>
+          )}
+
+          {/* Empty state */}
+          {friends.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No friends yet!</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Tap the + button above to add your first friend
+              </Text>
             </View>
           )}
         </ScrollView>
@@ -432,5 +348,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-Bold',
     color: '#A0826D',
     lineHeight: 24,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 20,
+    fontFamily: 'Rubik-Bold',
+    color: '#8B6F47',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    fontFamily: 'Nunito-Bold',
+    color: '#A0826D',
+    textAlign: 'center',
   },
 });

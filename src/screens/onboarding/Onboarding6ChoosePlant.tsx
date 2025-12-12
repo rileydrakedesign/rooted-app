@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Fonts, FontSizes } from '../../constants/fonts';
 import { PixelButton, ProgressBar, BackButton } from '../../components';
@@ -7,14 +7,22 @@ import { PixelButton, ProgressBar, BackButton } from '../../components';
 type Props = AuthStackScreenProps<'Onboarding6ChoosePlant'>;
 
 const PLANT_TYPES = [
-  { name: 'Succulent', emoji: '🌵' },
-  { name: 'Fern', emoji: '🌿' },
-  { name: 'Sunflower', emoji: '🌻' },
-  { name: 'Rose', emoji: '🌹' },
-  { name: 'Cactus', emoji: '🌵' },
-  { name: 'Ivy', emoji: '🍃' },
-  { name: 'Bonsai', emoji: '🎋' },
-  { name: 'Herb', emoji: '🌱' },
+  {
+    name: 'Cactus',
+    image: require('../../../assets/images/plants/cactus-plant.png')
+  },
+  {
+    name: 'Sunflower',
+    image: require('../../../assets/images/plants/sunflower-plant.png')
+  },
+  {
+    name: 'Monstera',
+    image: require('../../../assets/images/plants/monstera-plant.png')
+  },
+  {
+    name: 'Ficus',
+    image: require('../../../assets/images/plants/ficus-plant.png')
+  },
 ];
 
 export default function Onboarding6ChoosePlant({ navigation, route }: Props) {
@@ -63,7 +71,7 @@ export default function Onboarding6ChoosePlant({ navigation, route }: Props) {
           </TouchableOpacity>
 
           <View style={styles.plantDisplay}>
-            <Text style={styles.plantEmoji}>{currentPlant.emoji}</Text>
+            <Image source={currentPlant.image} style={styles.plantImage} resizeMode="contain" />
             <Text style={styles.plantName}>{currentPlant.name}</Text>
           </View>
 
@@ -153,8 +161,9 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#8B4513',
   },
-  plantEmoji: {
-    fontSize: 80,
+  plantImage: {
+    width: 120,
+    height: 120,
   },
   plantName: {
     fontSize: FontSizes.bodyLarge,

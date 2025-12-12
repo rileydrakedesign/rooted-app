@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Dimensions } from 'react-native';
+import { Image, StyleSheet, Dimensions, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -7,26 +7,26 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { Plant } from '../../types/plant';
+import { Plant, PLANT_EMOJIS } from './PlantTile';
 import { gridToScreen, screenToGrid, GridPosition } from '../../utils/gardenGrid';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_SCALE = SCREEN_WIDTH / 1024;
-const PLANT_SIZE = 120 * IMAGE_SCALE; // Doubled from 60 to 120
+const PLANT_SIZE = 240 * IMAGE_SCALE; // Doubled from 120 to 240
 const MAX_SNAP_DISTANCE = 80 * IMAGE_SCALE; // Maximum distance for valid plant placement
 
 interface DraggablePlantProps {
   plant: Plant;
-  image: any;
   onPositionChange: (plantId: string, newPosition: GridPosition) => void;
   isPositionOccupied: (position: GridPosition, excludePlantId: string) => boolean;
+  onTap?: (plant: Plant) => void;
 }
 
 export default function DraggablePlant({
   plant,
-  image,
   onPositionChange,
   isPositionOccupied,
+  onTap,
 }: DraggablePlantProps) {
   const screenPos = gridToScreen(plant.position.x, plant.position.y);
 
@@ -64,6 +64,13 @@ export default function DraggablePlant({
     isDragging.value = false;
   };
 
+  const tapGesture = Gesture.Tap()
+    .onEnd(() => {
+      if (onTap) {
+        runOnJS(onTap)(plant);
+      }
+    });
+
   const panGesture = Gesture.Pan()
     .onStart(() => {
       isDragging.value = true;
@@ -79,6 +86,8 @@ export default function DraggablePlant({
       runOnJS(handleDragEnd)(finalX, finalY);
     });
 
+  const composedGesture = Gesture.Exclusive(panGesture, tapGesture);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value - PLANT_SIZE / 2 },
@@ -89,9 +98,13 @@ export default function DraggablePlant({
   }));
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.plantContainer, animatedStyle]}>
-        <Image source={image} style={styles.plantImage} resizeMode="contain" />
+        {plant.image ? (
+          <Image source={plant.image} style={styles.plantImage} resizeMode="contain" />
+        ) : (
+          <Text style={styles.plantEmoji}>{PLANT_EMOJIS[plant.plantType]}</Text>
+        )}
       </Animated.View>
     </GestureDetector>
   );
@@ -102,9 +115,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: PLANT_SIZE,
     height: PLANT_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   plantImage: {
     width: '100%',
     height: '100%',
+  },
+  plantEmoji: {
+    fontSize: PLANT_SIZE * 0.8,
+    textAlign: 'center',
   },
 });

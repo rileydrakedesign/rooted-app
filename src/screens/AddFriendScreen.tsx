@@ -14,8 +14,8 @@ export default function AddFriendScreen({ navigation }: Props) {
       Alert.alert('Please enter a friend name');
       return;
     }
-    // Navigate to choose plant screen
-    navigation.navigate('ChoosePlant');
+    // Navigate to choose plant screen with friend name
+    navigation.navigate('ChoosePlant', { friendName: friendName.trim() });
   };
 
   const handleSkip = () => {
