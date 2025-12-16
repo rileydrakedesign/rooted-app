@@ -35,6 +35,7 @@ interface DraggablePlantProps {
   onPositionChange: (plantId: string, newPosition: GridPosition) => void;
   isPositionOccupied: (position: GridPosition, excludePlantId: string) => boolean;
   onTap?: (plant: Plant) => void;
+  onHoverUpdate?: (gridX: number, gridY: number, isValid: boolean, visible: boolean) => void;
 }
 
 export default function DraggablePlant({
@@ -42,6 +43,7 @@ export default function DraggablePlant({
   onPositionChange,
   isPositionOccupied,
   onTap,
+  onHoverUpdate,
 }: DraggablePlantProps) {
   // Get the cell center position for this plant's grid coordinates
   const cellCenter = gridCellToScreen(plant.position.x, plant.position.y);
@@ -85,7 +87,31 @@ export default function DraggablePlant({
       translateY.value = withSpring(cellCenter.y - PLANT_ANCHOR_OFFSET_Y);
     }
 
+    // Hide highlight when drag ends
+    onHoverUpdate?.(0, 0, false, false);
+
     isDragging.value = false;
+  };
+
+  /**
+   * Update hover highlight during drag
+   */
+  const handleDragUpdate = (currentX: number, currentY: number) => {
+    if (!onHoverUpdate) return;
+
+    const gridPos = screenToGrid(currentX, currentY);
+    const targetCellCenter = gridCellToScreen(gridPos.x, gridPos.y);
+
+    const distance = Math.sqrt(
+      Math.pow(currentX - targetCellCenter.x, 2) +
+      Math.pow(currentY - targetCellCenter.y, 2)
+    );
+
+    const occupied = isPositionOccupied(gridPos, plant.id);
+    const isFrontRow = gridPos.y >= 9;
+    const isValid = !occupied && distance <= MAX_SNAP_DISTANCE && !isFrontRow;
+
+    onHoverUpdate(gridPos.x, gridPos.y, isValid, true);
   };
 
   /**
@@ -109,6 +135,11 @@ export default function DraggablePlant({
       // Update position relative to original cell center
       translateX.value = (cellCenter.x - PLANT_ANCHOR_OFFSET_X) + event.translationX;
       translateY.value = (cellCenter.y - PLANT_ANCHOR_OFFSET_Y) + event.translationY;
+
+      // Update hover highlight (current drag position)
+      const currentX = cellCenter.x + event.translationX;
+      const currentY = cellCenter.y + event.translationY;
+      runOnJS(handleDragUpdate)(currentX, currentY);
     })
     .onEnd((event) => {
       // Calculate final position (add anchor offset back to get actual drag point)

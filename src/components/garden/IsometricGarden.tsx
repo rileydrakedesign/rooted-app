@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,6 +10,7 @@ import { Colors } from '../../constants/theme';
 import GridDebugOverlay from './GridDebugOverlay';
 import DraggablePlant from './DraggablePlant';
 import PlantInfoPanel from './PlantInfoPanel';
+import GridCellHighlight from './GridCellHighlight';
 import { GridPosition } from '../../utils/gardenGrid';
 import { useGarden } from '../../contexts/GardenContext';
 import { Plant } from '../garden/PlantTile';
@@ -34,6 +35,19 @@ export default function IsometricGarden({
   // Get plants and functions from context
   const { plants, updatePlantPosition, selectedPlant, setSelectedPlant } = useGarden();
 
+  // Hover state for cell highlight during drag
+  const [hoverState, setHoverState] = useState<{
+    gridX: number;
+    gridY: number;
+    isValid: boolean;
+    visible: boolean;
+  }>({
+    gridX: 0,
+    gridY: 0,
+    isValid: false,
+    visible: false,
+  });
+
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -53,6 +67,11 @@ export default function IsometricGarden({
   // Handle plant position changes
   const handlePlantPositionChange = (plantId: string, newPosition: GridPosition) => {
     updatePlantPosition(plantId, newPosition);
+  };
+
+  // Handle hover state updates during drag
+  const handleHoverUpdate = (gridX: number, gridY: number, isValid: boolean, visible: boolean) => {
+    setHoverState({ gridX, gridY, isValid, visible });
   };
 
   // Handle plant tap to show friend info
@@ -154,6 +173,16 @@ export default function IsometricGarden({
             resizeMode="contain"
           />
 
+          {/* Grid Cell Highlight Layer */}
+          <View style={styles.highlightLayer} pointerEvents="none">
+            <GridCellHighlight
+              gridX={hoverState.gridX}
+              gridY={hoverState.gridY}
+              isValid={hoverState.isValid}
+              visible={hoverState.visible}
+            />
+          </View>
+
           {/* Plants Layer */}
           <View style={styles.plantsLayer}>
             {plants.map((plant) => (
@@ -163,6 +192,7 @@ export default function IsometricGarden({
                 onPositionChange={handlePlantPositionChange}
                 isPositionOccupied={isPositionOccupied}
                 onTap={handlePlantTap}
+                onHoverUpdate={handleHoverUpdate}
               />
             ))}
           </View>
@@ -211,11 +241,17 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT * 0.8,
     zIndex: 1,
   },
-  plantsLayer: {
+  highlightLayer: {
     position: 'absolute',
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.8,
     zIndex: 2,
+  },
+  plantsLayer: {
+    position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.8,
+    zIndex: 3,
   },
   foregroundImage: {
     position: 'absolute',
