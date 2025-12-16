@@ -149,7 +149,7 @@ export default function IsometricGarden({
         <Animated.View style={[styles.gardenContainer, animatedStyle]}>
           {/* Background Layer */}
           <Image
-            source={require('../../../assets/images/garden/garden.background1.png')}
+            source={require('../../../assets/images/garden/gardenBackground1.png')}
             style={styles.backgroundImage}
             resizeMode="contain"
           />
@@ -170,8 +170,8 @@ export default function IsometricGarden({
           {/* Debug Grid Overlay */}
           {showDebugGrid && <GridDebugOverlay />}
 
-          {/* Foreground Layer */}
-          <View style={styles.foregroundImage} pointerEvents="none">
+          {/* Foreground Layer - Hidden for debugging */}
+          <View style={[styles.foregroundImage, { opacity: 0 }]} pointerEvents="none">
             <Image
               source={require('../../../assets/images/garden/garden-foreground1.png')}
               style={{ width: '100%', height: '100%' }}
