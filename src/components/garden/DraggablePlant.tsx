@@ -8,12 +8,27 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Plant, PLANT_EMOJIS } from './PlantTile';
-import { gridToScreen, screenToGrid, GridPosition } from '../../utils/gardenGrid';
+import { gridCellToScreen, screenToGrid, GridPosition } from '../../utils/gardenGrid';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const IMAGE_SCALE = SCREEN_WIDTH / 1024;
-const PLANT_SIZE = 240 * IMAGE_SCALE; // Doubled from 120 to 240
-const MAX_SNAP_DISTANCE = 80 * IMAGE_SCALE; // Maximum distance for valid plant placement
+
+/**
+ * Plant Visual Constants
+ * Using correct IMAGE_SCALE to match gardenGrid.ts
+ */
+const IMAGE_SCALE = SCREEN_WIDTH / 1000; // Match source image dimensions
+
+// Plant sprite dimensions (base size in source image pixels)
+const PLANT_BASE_SIZE = 80; // Base size for plant sprite
+const PLANT_SIZE = PLANT_BASE_SIZE * IMAGE_SCALE;
+
+// Anchor point configuration
+// Plants anchor at bottom-center to appear sitting on the ground
+const PLANT_ANCHOR_OFFSET_X = PLANT_SIZE / 2; // Center horizontally
+const PLANT_ANCHOR_OFFSET_Y = PLANT_SIZE * 0.75; // Anchor at 75% down (bottom)
+
+// Snap distance threshold (in screen pixels)
+const MAX_SNAP_DISTANCE = 60 * IMAGE_SCALE;
 
 interface DraggablePlantProps {
   plant: Plant;
@@ -28,42 +43,54 @@ export default function DraggablePlant({
   isPositionOccupied,
   onTap,
 }: DraggablePlantProps) {
-  const screenPos = gridToScreen(plant.position.x, plant.position.y);
+  // Get the cell center position for this plant's grid coordinates
+  const cellCenter = gridCellToScreen(plant.position.x, plant.position.y);
 
-  const translateX = useSharedValue(screenPos.x);
-  const translateY = useSharedValue(screenPos.y);
+  // Initialize position at cell center with anchor offset
+  const translateX = useSharedValue(cellCenter.x - PLANT_ANCHOR_OFFSET_X);
+  const translateY = useSharedValue(cellCenter.y - PLANT_ANCHOR_OFFSET_Y);
   const isDragging = useSharedValue(false);
 
-  // Handler that runs on JS thread to check collision and snap to position
+  /**
+   * Handle drag end - snap to nearest valid cell center
+   */
   const handleDragEnd = (finalX: number, finalY: number) => {
+    // Convert drag position to grid coordinates (finds nearest grid intersection)
     const gridPos = screenToGrid(finalX, finalY);
-    const targetScreenPos = gridToScreen(gridPos.x, gridPos.y);
 
-    // Calculate distance from drop point to nearest grid intersection
+    // Get the target cell center
+    const targetCellCenter = gridCellToScreen(gridPos.x, gridPos.y);
+
+    // Calculate distance from drop point to target cell center
     const distance = Math.sqrt(
-      Math.pow(finalX - targetScreenPos.x, 2) + Math.pow(finalY - targetScreenPos.y, 2)
+      Math.pow(finalX - targetCellCenter.x, 2) +
+      Math.pow(finalY - targetCellCenter.y, 2)
     );
 
+    // Check if position is occupied
     const occupied = isPositionOccupied(gridPos, plant.id);
 
-    // Restrict placement on front row (y=9) - too close to user
+    // Restrict placement on front row (y=9) - too close to viewer
     const isFrontRow = gridPos.y >= 9;
 
-    // Only snap if within valid distance, position is not occupied, and not in front row
+    // Validate placement: within snap distance, not occupied, not front row
     if (!occupied && distance <= MAX_SNAP_DISTANCE && !isFrontRow) {
-      // Valid position and close enough to grid - snap to grid
-      translateX.value = withSpring(targetScreenPos.x);
-      translateY.value = withSpring(targetScreenPos.y);
+      // Valid position - snap to target cell center
+      translateX.value = withSpring(targetCellCenter.x - PLANT_ANCHOR_OFFSET_X);
+      translateY.value = withSpring(targetCellCenter.y - PLANT_ANCHOR_OFFSET_Y);
       onPositionChange(plant.id, gridPos);
     } else {
-      // Invalid position or too far from grid - snap back to original
-      translateX.value = withSpring(screenPos.x);
-      translateY.value = withSpring(screenPos.y);
+      // Invalid position - snap back to original cell center
+      translateX.value = withSpring(cellCenter.x - PLANT_ANCHOR_OFFSET_X);
+      translateY.value = withSpring(cellCenter.y - PLANT_ANCHOR_OFFSET_Y);
     }
 
     isDragging.value = false;
   };
 
+  /**
+   * Tap gesture - show plant info
+   */
   const tapGesture = Gesture.Tap()
     .onEnd(() => {
       if (onTap) {
@@ -71,31 +98,49 @@ export default function DraggablePlant({
       }
     });
 
+  /**
+   * Pan gesture - drag plant
+   */
   const panGesture = Gesture.Pan()
     .onStart(() => {
       isDragging.value = true;
     })
     .onUpdate((event) => {
-      translateX.value = screenPos.x + event.translationX;
-      translateY.value = screenPos.y + event.translationY;
+      // Update position relative to original cell center
+      translateX.value = (cellCenter.x - PLANT_ANCHOR_OFFSET_X) + event.translationX;
+      translateY.value = (cellCenter.y - PLANT_ANCHOR_OFFSET_Y) + event.translationY;
     })
     .onEnd((event) => {
-      // Calculate final position and handle on JS thread
-      const finalX = screenPos.x + event.translationX;
-      const finalY = screenPos.y + event.translationY;
+      // Calculate final position (add anchor offset back to get actual drag point)
+      const finalX = cellCenter.x + event.translationX;
+      const finalY = cellCenter.y + event.translationY;
       runOnJS(handleDragEnd)(finalX, finalY);
     });
 
+  // Exclusive gesture: tap or pan, not both
   const composedGesture = Gesture.Exclusive(panGesture, tapGesture);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value - PLANT_SIZE / 2 },
-      { translateY: translateY.value - PLANT_SIZE / 2 },
-      { scale: withSpring(isDragging.value ? 1.1 : 1) },
-    ],
-    zIndex: isDragging.value ? 1000 : 1,
-  }));
+  /**
+   * Animated style with:
+   * - Position based on cell center
+   * - Isometric layering (Z-index based on grid row)
+   * - Scale feedback during drag
+   */
+  const animatedStyle = useAnimatedStyle(() => {
+    // Calculate Z-index for isometric layering
+    // Back rows (low Y) render behind front rows (high Y)
+    const baseZIndex = (plant.position.y * 10) + plant.position.x;
+    const zIndex = isDragging.value ? 1000 : baseZIndex;
+
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: withSpring(isDragging.value ? 1.15 : 1) },
+      ],
+      zIndex,
+    };
+  });
 
   return (
     <GestureDetector gesture={composedGesture}>
@@ -117,6 +162,15 @@ const styles = StyleSheet.create({
     height: PLANT_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
+    // Isometric shadow (bottom-right direction)
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 3 * IMAGE_SCALE,
+      height: 2 * IMAGE_SCALE,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4 * IMAGE_SCALE,
+    elevation: 5,
   },
   plantImage: {
     width: '100%',

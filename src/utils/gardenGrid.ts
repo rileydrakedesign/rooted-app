@@ -501,7 +501,7 @@ function imageToScreen(imageX: number, imageY: number): ScreenPosition {
 }
 
 /**
- * Convert grid position to screen coordinates
+ * Convert grid position to screen coordinates (grid intersection point)
  */
 export function gridToScreen(gridX: number, gridY: number): ScreenPosition {
   'worklet';
@@ -520,6 +520,33 @@ export function gridToScreen(gridX: number, gridY: number): ScreenPosition {
   return {
     x: IMAGE_CENTER_X + offset.x * IMAGE_SCALE,
     y: IMAGE_CENTER_Y + offset.y * IMAGE_SCALE,
+  };
+}
+
+/**
+ * Convert grid position to screen coordinates (cell center)
+ *
+ * Cell centers are where objects should be placed to appear centered in the diamond cell.
+ * This is different from grid intersections (where lines cross).
+ *
+ * Formula: cellCenter = intersection + (Vector1/2 + Vector2/2)
+ * Since Vector1 + Vector2 moves one diagonal unit up/back, dividing by 2 gives cell center.
+ */
+export function gridCellToScreen(gridX: number, gridY: number): ScreenPosition {
+  'worklet';
+
+  // Get the top-left intersection of this cell
+  const intersection = gridToScreen(gridX, gridY);
+
+  // Cell center offset: half of each vector
+  // Vector1/2: (26, -13) in source image
+  // Vector2/2: (-26, -13) in source image
+  // Sum: (0, -26) - cell center is 26px below intersection in source image
+  const cellCenterOffsetY = -26 * IMAGE_SCALE;
+
+  return {
+    x: intersection.x, // X stays the same (vectors cancel out)
+    y: intersection.y + cellCenterOffsetY, // Move down by 26 scaled pixels
   };
 }
 
