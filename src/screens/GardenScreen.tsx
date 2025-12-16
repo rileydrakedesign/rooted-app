@@ -48,7 +48,7 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
         />
 
         {/* Isometric Garden Viewport */}
-        <IsometricGarden showDebugGrid={true} />
+        <IsometricGarden showDebugGrid={false} />
       </View>
     </SafeAreaView>
   );
