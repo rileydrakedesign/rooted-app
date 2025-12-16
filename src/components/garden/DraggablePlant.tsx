@@ -19,7 +19,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_SCALE = SCREEN_WIDTH / 1000; // Match source image dimensions
 
 // Plant sprite dimensions (base size in source image pixels)
-const PLANT_BASE_SIZE = 80; // Base size for plant sprite
+const PLANT_BASE_SIZE = 200; // Base size for plant sprite (80 * 2.5)
 const PLANT_SIZE = PLANT_BASE_SIZE * IMAGE_SCALE;
 
 // Anchor point configuration
