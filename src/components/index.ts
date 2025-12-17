@@ -5,7 +5,7 @@ export { default as BackButton } from './BackButton';
 
 // Garden components
 export { default as TopBar } from './garden/TopBar';
-export { default as IsometricGarden } from './garden/IsometricGarden';
+export { default as TileMap } from './garden/TileMap';
 export { default as PlantTile } from './garden/PlantTile';
 export { default as PlantInfoPanel } from './garden/PlantInfoPanel';
 export type { Plant } from './garden/PlantTile';

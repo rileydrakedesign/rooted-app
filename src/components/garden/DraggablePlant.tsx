@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Image, StyleSheet, Dimensions, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -8,13 +8,18 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Plant, PLANT_EMOJIS } from './PlantTile';
-import { gridCellToScreen, screenToGrid, GridPosition } from '../../utils/gardenGrid';
+import { GridPosition, isValidPosition } from '../../utils/isoMath';
+
+// TODO: Integrate with new tile-based grid system
+// These functions need to be reimplemented for the new tile renderer
+const gridCellToScreen = (gridX: number, gridY: number) => ({ x: 0, y: 0 }); // Placeholder
+const screenToCellCenter = (screenX: number, screenY: number) => ({ x: 0, y: 0 }); // Placeholder
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /**
  * Plant Visual Constants
- * Using correct IMAGE_SCALE to match gardenGrid.ts
+ * TODO: Update to work with new tile-based grid system
  */
 const IMAGE_SCALE = SCREEN_WIDTH / 1000; // Match source image dimensions
 
@@ -27,8 +32,10 @@ const PLANT_SIZE = PLANT_BASE_SIZE * IMAGE_SCALE;
 const PLANT_ANCHOR_OFFSET_X = PLANT_SIZE / 2; // Center horizontally
 const PLANT_ANCHOR_OFFSET_Y = PLANT_SIZE * 0.75; // Anchor at 75% down (bottom)
 
-// Snap distance threshold (in screen pixels)
-const MAX_SNAP_DISTANCE = 60 * IMAGE_SCALE;
+// Visual center offset (for placement calculations)
+// This is where users perceive the plant to be during drag
+const VISUAL_CENTER_OFFSET_X = PLANT_SIZE / 2; // Middle of sprite
+const VISUAL_CENTER_OFFSET_Y = PLANT_SIZE / 2; // Middle of sprite
 
 interface DraggablePlantProps {
   plant: Plant;
@@ -43,46 +50,72 @@ export default function DraggablePlant({
   isPositionOccupied,
   onTap,
 }: DraggablePlantProps) {
-  // Get the cell center position for this plant's grid coordinates
-  const cellCenter = gridCellToScreen(plant.position.x, plant.position.y);
-
-  // Initialize position at cell center with anchor offset
-  const translateX = useSharedValue(cellCenter.x - PLANT_ANCHOR_OFFSET_X);
-  const translateY = useSharedValue(cellCenter.y - PLANT_ANCHOR_OFFSET_Y);
+  // Shared values for animation
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
   const isDragging = useSharedValue(false);
+
+  // Store starting position for drag calculations
+  const dragStartX = useSharedValue(0);
+  const dragStartY = useSharedValue(0);
+
+  // Sync visual position with grid position whenever plant.position changes
+  useEffect(() => {
+    const cellCenter = gridCellToScreen(plant.position.x, plant.position.y);
+    translateX.value = cellCenter.x - PLANT_ANCHOR_OFFSET_X;
+    translateY.value = cellCenter.y - PLANT_ANCHOR_OFFSET_Y;
+  }, [plant.position.x, plant.position.y]);
 
   /**
    * Handle drag end - snap to nearest valid cell center
+   *
+   * First Principles Approach:
+   * 1. Calculate where user sees the plant (visual center)
+   * 2. Find nearest cell center to that visual position
+   * 3. Validate the target position (not occupied, not front row)
+   * 4. Snap plant's anchor point to target cell center (or back to original)
    */
-  const handleDragEnd = (finalX: number, finalY: number) => {
-    // Convert drag position to grid coordinates (finds nearest grid intersection)
-    const gridPos = screenToGrid(finalX, finalY);
+  const handleDragEnd = (draggedTranslateX: number, draggedTranslateY: number) => {
+    // Calculate visual center position (where user perceives the plant to be)
+    const visualCenterX = draggedTranslateX + VISUAL_CENTER_OFFSET_X;
+    const visualCenterY = draggedTranslateY + VISUAL_CENTER_OFFSET_Y;
 
-    // Get the target cell center
-    const targetCellCenter = gridCellToScreen(gridPos.x, gridPos.y);
+    console.log('🔍 Drag End Debug:', {
+      plantId: plant.id,
+      draggedTranslate: { x: draggedTranslateX, y: draggedTranslateY },
+      visualCenter: { x: visualCenterX, y: visualCenterY },
+      PLANT_SIZE,
+      VISUAL_CENTER_OFFSET_X,
+      VISUAL_CENTER_OFFSET_Y,
+    });
 
-    // Calculate distance from drop point to target cell center
-    const distance = Math.sqrt(
-      Math.pow(finalX - targetCellCenter.x, 2) +
-      Math.pow(finalY - targetCellCenter.y, 2)
-    );
+    // Find nearest cell center to the visual position
+    const targetGridPos = screenToCellCenter(visualCenterX, visualCenterY);
 
-    // Check if position is occupied
-    const occupied = isPositionOccupied(gridPos, plant.id);
+    console.log('🎯 Target Grid:', targetGridPos);
 
-    // Restrict placement on front row (y=9) - too close to viewer
-    const isFrontRow = gridPos.y >= 9;
+    // Get the target cell center coordinates
+    const targetCellCenter = gridCellToScreen(targetGridPos.x, targetGridPos.y);
 
-    // Validate placement: within snap distance, not occupied, not front row
-    if (!occupied && distance <= MAX_SNAP_DISTANCE && !isFrontRow) {
-      // Valid position - snap to target cell center
+    console.log('📍 Target Cell Center:', targetCellCenter);
+
+    // Validate placement
+    const withinBounds = isValidPosition(targetGridPos); // Check grid boundaries (0-15 for x and y)
+    const occupied = isPositionOccupied(targetGridPos, plant.id);
+    const isFrontRow = targetGridPos.y >= 15; // Restrict front row placement
+
+    console.log('✅ Validation:', { withinBounds, occupied, isFrontRow });
+
+    if (withinBounds && !occupied && !isFrontRow) {
+      // Valid position - snap anchor point to target cell center
       translateX.value = withSpring(targetCellCenter.x - PLANT_ANCHOR_OFFSET_X);
       translateY.value = withSpring(targetCellCenter.y - PLANT_ANCHOR_OFFSET_Y);
-      onPositionChange(plant.id, gridPos);
+      onPositionChange(plant.id, targetGridPos);
     } else {
-      // Invalid position - snap back to original cell center
-      translateX.value = withSpring(cellCenter.x - PLANT_ANCHOR_OFFSET_X);
-      translateY.value = withSpring(cellCenter.y - PLANT_ANCHOR_OFFSET_Y);
+      // Invalid position - snap back to current grid position
+      const currentCellCenter = gridCellToScreen(plant.position.x, plant.position.y);
+      translateX.value = withSpring(currentCellCenter.x - PLANT_ANCHOR_OFFSET_X);
+      translateY.value = withSpring(currentCellCenter.y - PLANT_ANCHOR_OFFSET_Y);
     }
 
     isDragging.value = false;
@@ -104,17 +137,20 @@ export default function DraggablePlant({
   const panGesture = Gesture.Pan()
     .onStart(() => {
       isDragging.value = true;
+      // Store starting position in shared values
+      dragStartX.value = translateX.value;
+      dragStartY.value = translateY.value;
     })
     .onUpdate((event) => {
-      // Update position relative to original cell center
-      translateX.value = (cellCenter.x - PLANT_ANCHOR_OFFSET_X) + event.translationX;
-      translateY.value = (cellCenter.y - PLANT_ANCHOR_OFFSET_Y) + event.translationY;
+      // Update position relative to starting position
+      translateX.value = dragStartX.value + event.translationX;
+      translateY.value = dragStartY.value + event.translationY;
     })
     .onEnd((event) => {
-      // Calculate final position (add anchor offset back to get actual drag point)
-      const finalX = cellCenter.x + event.translationX;
-      const finalY = cellCenter.y + event.translationY;
-      runOnJS(handleDragEnd)(finalX, finalY);
+      // Calculate final translateX/translateY values (top-left corner of plant sprite)
+      const finalTranslateX = dragStartX.value + event.translationX;
+      const finalTranslateY = dragStartY.value + event.translationY;
+      runOnJS(handleDragEnd)(finalTranslateX, finalTranslateY);
     });
 
   // Exclusive gesture: tap or pan, not both

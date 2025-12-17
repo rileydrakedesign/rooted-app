@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import TopBar from '../components/garden/TopBar';
-import IsometricGarden from '../components/garden/IsometricGarden';
+import TileMap from '../components/garden/TileMap';
+import { exampleMap } from '../data/exampleMap';
 import { Colors } from '../constants/theme';
 
 type Props = MainTabScreenProps<'Garden'> & {
@@ -34,6 +35,11 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
     Alert.alert('Notifications', `You have ${notificationCount} notifications`);
   };
 
+  const handleTileSelected = (i: number, j: number) => {
+    console.log(`Tile selected at grid position: (${i}, ${j})`);
+    // TODO: Handle tile selection (e.g., plant placement)
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -47,8 +53,8 @@ export default function GardenScreen({ navigation, onMenuPress }: Props) {
           onNotificationPress={handleNotificationPress}
         />
 
-        {/* Isometric Garden Viewport */}
-        <IsometricGarden showDebugGrid={false} />
+        {/* New Tile-Based Garden */}
+        <TileMap map={exampleMap} onTileSelected={handleTileSelected} />
       </View>
     </SafeAreaView>
   );

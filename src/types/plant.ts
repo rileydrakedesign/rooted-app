@@ -2,7 +2,7 @@
  * Plant types and interfaces for the garden system
  */
 
-import { GridPosition } from '../utils/gardenGrid';
+import { GridPosition } from '../utils/isoMath';
 
 export interface Plant {
   id: string;
