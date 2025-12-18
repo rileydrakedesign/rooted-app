@@ -38,15 +38,23 @@ interface TileMapProps {
   onTileSelected?: (i: number, j: number) => void;
 }
 
+// Zoom constraints
+const MIN_ZOOM = 1.0; // Default zoom - cannot zoom out past this
+const MAX_ZOOM = 2.5; // Maximum zoom in
+
 export default function TileMap({ map, onTileSelected }: TileMapProps) {
   // Camera position (controlled on JS thread for simplicity)
-  // Center the camera to show the middle of the 16x16 map perfectly on screen
+  // Center the camera to show the middle of the 10x10 map perfectly on screen
+  // Shift UP to account for TopBar at top
   const [cameraX, setCameraX] = useState(SCREEN_WIDTH / 2);
-  const [cameraY, setCameraY] = useState(SCREEN_HEIGHT / 2.2);
+  const [cameraY, setCameraY] = useState(SCREEN_HEIGHT / 2 - 80); // Shifted UP to center in available space
 
   // Selected tile
   const [selectedI, setSelectedI] = useState(-1);
   const [selectedJ, setSelectedJ] = useState(-1);
+
+  // Zoom state (React state for re-rendering)
+  const [scale, setScale] = useState(1);
 
   // Load tile images
   const grassImage = useImage(TILE_IMAGES[1]);
@@ -57,6 +65,10 @@ export default function TileMap({ map, onTileSelected }: TileMapProps) {
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
+  // Saved scale for pinch gesture (shared value for UI thread)
+  const savedScale = useSharedValue(1);
+  const currentScale = useSharedValue(1); // Track current scale on UI thread
+
   /**
    * Update camera position (runs on JS thread)
    */
@@ -66,31 +78,78 @@ export default function TileMap({ map, onTileSelected }: TileMapProps) {
   }, []);
 
   /**
-   * Pan Gesture - Move camera
+   * Update scale (runs on JS thread)
+   */
+  const updateScale = useCallback((newScale: number) => {
+    setScale(newScale);
+  }, []);
+
+  /**
+   * Pan Gesture - Move camera (only when zoomed in, horizontal only)
    */
   const panGesture = Gesture.Pan()
     .onStart(() => {
       'worklet';
       savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      // Don't save translateY - we're blocking vertical movement
     })
     .onUpdate((event) => {
       'worklet';
-      translateX.value = savedTranslateX.value + event.translationX;
-      translateY.value = savedTranslateY.value + event.translationY;
+      // Only allow horizontal panning when zoomed in (scale > 1)
+      if (currentScale.value > MIN_ZOOM) {
+        // Only update X translation - Y stays at 0 (no vertical panning)
+        translateX.value = savedTranslateX.value + event.translationX;
+      }
     })
     .onEnd(() => {
       'worklet';
       // Update camera position on JS thread using runOnJS
-      const newX = cameraX + translateX.value;
-      const newY = cameraY + translateY.value;
-      runOnJS(updateCamera)(newX, newY);
+      if (currentScale.value > MIN_ZOOM) {
+        const newX = cameraX + translateX.value;
+        // Keep Y centered - don't update it
+        runOnJS(updateCamera)(newX, cameraY);
+      }
 
       // Reset translation
       translateX.value = 0;
-      translateY.value = 0;
       savedTranslateX.value = 0;
-      savedTranslateY.value = 0;
+      // translateY stays at 0 always
+    });
+
+  /**
+   * Pinch Gesture - Zoom in/out
+   */
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      'worklet';
+      savedScale.value = currentScale.value;
+    })
+    .onUpdate((event) => {
+      'worklet';
+      // Calculate new scale with constraints
+      const newScale = savedScale.value * event.scale;
+      currentScale.value = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newScale));
+
+      // Update React state for re-render
+      runOnJS(updateScale)(currentScale.value);
+    })
+    .onEnd(() => {
+      'worklet';
+      // Ensure scale stays within bounds
+      currentScale.value = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentScale.value));
+      savedScale.value = currentScale.value;
+
+      // Final update to React state
+      runOnJS(updateScale)(currentScale.value);
+
+      // Reset camera position when zooming back to default
+      if (currentScale.value <= MIN_ZOOM) {
+        translateX.value = 0;
+        translateY.value = 0;
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+        runOnJS(updateCamera)(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 80); // Centered in available space
+      }
     });
 
   /**
@@ -110,8 +169,20 @@ export default function TileMap({ map, onTileSelected }: TileMapProps) {
    */
   const tapGesture = Gesture.Tap().onEnd((event) => {
     'worklet';
-    // Convert tap position to grid coordinates
-    const gridCoord = screenToGrid(event.x, event.y, cameraX, cameraY);
+
+    // Transform tap position from screen space to world space
+    // Inverse of the zoom transform applied to the canvas
+    const zoomOriginX = SCREEN_WIDTH / 2;
+    const zoomOriginY = SCREEN_HEIGHT / 2;
+
+    // Apply inverse transform: move to origin, inverse scale, move back
+    const worldX = (event.x - zoomOriginX) / currentScale.value + zoomOriginX;
+    const worldY = (event.y - zoomOriginY) / currentScale.value + zoomOriginY;
+
+    // Convert world position to grid coordinates
+    const effectiveCamX = cameraX + translateX.value;
+    const effectiveCamY = cameraY + translateY.value;
+    const gridCoord = screenToGrid(worldX, worldY, effectiveCamX, effectiveCamY);
 
     // Validate bounds
     if (isInBounds(gridCoord.i, gridCoord.j, map.width, map.height)) {
@@ -119,20 +190,17 @@ export default function TileMap({ map, onTileSelected }: TileMapProps) {
     }
   });
 
-  // Combine gestures
-  const composedGesture = Gesture.Race(tapGesture, panGesture);
+  // Combine gestures - allow simultaneous pinch and pan, but tap is exclusive
+  const composedGesture = Gesture.Race(
+    tapGesture,
+    Gesture.Simultaneous(panGesture, pinchGesture)
+  );
 
-  // Animated style for panning feedback
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-    ],
-  }));
 
-  // Calculate current camera position including translation
+  // Calculate current camera position including translation (NO zoom multiplication)
   const effectiveCameraX = cameraX + (translateX.value || 0);
   const effectiveCameraY = cameraY + (translateY.value || 0);
+  const effectiveScale = scale; // Use React state, not shared value
 
   // Build list of visible tiles to render
   const renderTiles = () => {
@@ -140,7 +208,7 @@ export default function TileMap({ map, onTileSelected }: TileMapProps) {
 
     const tiles = [];
 
-    // For 16x16 map, just render all tiles (small enough for good performance)
+    // For 10x10 map, render all tiles (optimized for performance - only 100 tiles)
     const minI = 0;
     const maxI = map.width - 1;
     const minJ = 0;
@@ -190,12 +258,26 @@ export default function TileMap({ map, onTileSelected }: TileMapProps) {
     return tiles;
   };
 
+  // Calculate zoom transform around screen center
+  const zoomOriginX = SCREEN_WIDTH / 2;
+  const zoomOriginY = SCREEN_HEIGHT / 2;
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <GestureDetector gesture={composedGesture}>
         <View style={styles.container}>
           <Canvas style={styles.canvas}>
-            {renderTiles()}
+            <Group
+              transform={[
+                { translateX: zoomOriginX },
+                { translateY: zoomOriginY },
+                { scale: effectiveScale },
+                { translateX: -zoomOriginX },
+                { translateY: -zoomOriginY },
+              ]}
+            >
+              {renderTiles()}
+            </Group>
           </Canvas>
         </View>
       </GestureDetector>
@@ -210,6 +292,6 @@ const styles = StyleSheet.create({
   canvas: {
     flex: 1,
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    // Remove fixed height - let it fill the available space
   },
 });

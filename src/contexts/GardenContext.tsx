@@ -26,9 +26,9 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
       plants.map((p) => `${p.position.x},${p.position.y}`)
     );
 
-    // Filter out front row (y=15 for 16x16 grid) and find first available position
+    // Filter out front row (y=9 for 10x10 grid) and find first available position
     const availablePosition = allPositions.find(
-      (pos) => pos.y < 15 && !occupiedPositions.has(`${pos.x},${pos.y}`)
+      (pos) => pos.y < 9 && !occupiedPositions.has(`${pos.x},${pos.y}`)
     );
 
     if (!availablePosition) {

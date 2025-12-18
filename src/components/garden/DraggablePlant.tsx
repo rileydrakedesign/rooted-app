@@ -100,9 +100,9 @@ export default function DraggablePlant({
     console.log('📍 Target Cell Center:', targetCellCenter);
 
     // Validate placement
-    const withinBounds = isValidPosition(targetGridPos); // Check grid boundaries (0-15 for x and y)
+    const withinBounds = isValidPosition(targetGridPos); // Check grid boundaries (0-9 for x and y)
     const occupied = isPositionOccupied(targetGridPos, plant.id);
-    const isFrontRow = targetGridPos.y >= 15; // Restrict front row placement
+    const isFrontRow = targetGridPos.y >= 9; // Restrict front row placement
 
     console.log('✅ Validation:', { withinBounds, occupied, isFrontRow });
 

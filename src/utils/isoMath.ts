@@ -6,15 +6,15 @@
  */
 
 // Tile dimensions (2:1 diamond ratio for grid spacing)
-// Sized to fit 16x16 grid perfectly on screen
-// Grid width = 15 * TILE_WIDTH ≈ 360px (fits ~375px phone screen)
-export const TILE_WIDTH = 24;
-export const TILE_HEIGHT = 12;
+// Sized to fit 10x10 grid perfectly on screen
+// Grid width = 9 * TILE_WIDTH ≈ 360px (fits ~375px phone screen)
+export const TILE_WIDTH = 40;
+export const TILE_HEIGHT = 20;
 
 // Actual rendered tile image size (maintains 1:1 aspect ratio of source image)
 // The tile image is 1024x1024, so we render it as a square
-// Scaled proportionally to tile spacing
-export const TILE_RENDER_SIZE = 36; // Square: 36x36 pixels
+// Scaled proportionally to tile spacing - larger tiles for fewer count
+export const TILE_RENDER_SIZE = 60; // Square: 60x60 pixels
 
 export interface GridCoord {
   i: number; // Column
@@ -218,18 +218,18 @@ export function isInBounds(
  * Check if a GridPosition is valid (legacy compatibility)
  */
 export function isValidPosition(pos: GridPosition): boolean {
-  // Map size is now 16x16
-  return pos.x >= 0 && pos.x < 16 && pos.y >= 0 && pos.y < 16;
+  // Map size is now 10x10
+  return pos.x >= 0 && pos.x < 10 && pos.y >= 0 && pos.y < 10;
 }
 
 /**
  * Get all valid grid positions (legacy compatibility)
- * Returns positions for a 16x16 grid to match exampleMap
+ * Returns positions for a 10x10 grid to match exampleMap
  */
 export function getAllPositions(): GridPosition[] {
   const positions: GridPosition[] = [];
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
+  for (let y = 0; y < 10; y++) {
+    for (let x = 0; x < 10; x++) {
       positions.push({ x, y });
     }
   }

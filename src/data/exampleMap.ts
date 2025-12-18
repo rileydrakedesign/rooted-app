@@ -35,12 +35,12 @@ function generateGrassMap(width: number, height: number): TileId[][] {
 }
 
 /**
- * Example 16x16 garden map
+ * Example 10x10 garden map (optimized for performance)
  */
 export const exampleMap: MapData = {
-  width: 16,
-  height: 16,
-  tiles: generateGrassMap(16, 16),
+  width: 10,
+  height: 10,
+  tiles: generateGrassMap(10, 10),
 };
 
 /**
