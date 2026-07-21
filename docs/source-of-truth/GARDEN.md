@@ -184,7 +184,15 @@ for the mapping invariants.
 - **Decay is computed client-side at load** (`effectiveHydration` in `src/lib/garden.ts`):
   `stored − decay_rate_per_day × days since last_hydration_update`, clamped 0–100, rounded.
   Nothing writes decayed values back; the DB keeps the last true snapshot. No timer runs while
-  the app is open — hydration updates on the next garden load.
+  the app is open, but the garden **refreshes silently on app foreground** (`AppState` listener
+  in `GardenContext`), so backgrounded decay shows up without a manual reload.
+- **Watering (Batch 5 — the care loop's write path)**: tapping a plant opens `PlantInfoPanel`,
+  whose three log actions (Called +40 / Texted +20 / Hung out +30) call
+  `GardenContext.logInteraction` → the `log_interaction` RPC. The RPC applies the weighting
+  (single source of truth; `HYDRATION_WEIGHTS` in `garden.ts` only mirrors it for display),
+  caps at 100, resets the decay clock, and appends an `interactions` row. Local state updates
+  optimistically with the identical formula. `GardenScreen` must refresh its `selectedPlant`
+  snapshot after logging or the panel's bar won't move.
 - **Wilt is visual only**: `hydration <= WILT_THRESHOLD` (30, exported from `garden.ts`) renders
   the sprite at reduced opacity with a 💧 badge (`DraggablePlant`).
 - **Pause (vacation freeze)**: `users.is_paused` + `paused_at`. While paused, decay is computed

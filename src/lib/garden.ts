@@ -182,6 +182,42 @@ export async function setGardenPausedRemote(paused: boolean): Promise<void> {
   if (error) throw error;
 }
 
+export type InteractionType = 'call' | 'text' | 'manual';
+
+/**
+ * Mirrors the CASE weighting inside the log_interaction RPC — the RPC is
+ * the source of truth; this exists only so the client can show the new
+ * value without a round-trip.
+ */
+export const HYDRATION_WEIGHTS: Record<InteractionType, number> = {
+  call: 40,
+  text: 20,
+  manual: 30,
+};
+
+/**
+ * Log contact with a friend — the care loop's only write path. The
+ * log_interaction RPC applies the type weighting (call 40 / text 20 /
+ * manual 30; p_hydration_amount deliberately omitted), caps at 100,
+ * resets the decay clock (last_hydration_update = NOW()), and appends the
+ * interactions row. Returns the new hydration, computed optimistically
+ * with the identical formula (LEAST(100, current + weight)).
+ */
+export async function logInteractionRemote(
+  userId: string,
+  friendId: string,
+  type: InteractionType,
+  currentHydration: number
+): Promise<number> {
+  const { error } = await supabase.rpc('log_interaction', {
+    p_user_id: userId,
+    p_friend_id: friendId,
+    p_interaction_type: type,
+  });
+  if (error) throw error;
+  return Math.min(100, Math.round(currentHydration + HYDRATION_WEIGHTS[type]));
+}
+
 /**
  * Create a friend + its 1:1 plant. Returns client-shaped objects keyed by
  * the new friends.id. The caller picks `position` (free-tile search stays

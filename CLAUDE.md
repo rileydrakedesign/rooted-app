@@ -52,10 +52,14 @@ Before building on top of anything, know this:
 - **`handle_new_user` trigger exists** — every signup gets a `public.users` row (pre-existing
   auth users were backfilled).
 - **Decay + wilt + pause exist (Batch 4); DEATH IS CUT — ratified.** Hydration decays
-  client-side at load (`effectiveHydration` in `src/lib/garden.ts`); `hydration <= 30` renders
-  wilted (faded + 💧). The Settings "Pause Garden" toggle freezes decay via the
-  `set_garden_paused` RPC. `is_dead`/`death_timestamp`/`revive_logs` are legacy — never build on
-  them. Rehydration (`log_interaction`) is still unwired — plants currently can't be watered.
+  client-side at load (`effectiveHydration` in `src/lib/garden.ts`) and refreshes silently on
+  app foreground; `hydration <= 30` renders wilted (faded + 💧). The Settings "Pause Garden"
+  toggle freezes decay via the `set_garden_paused` RPC. `is_dead`/`death_timestamp`/
+  `revive_logs` are legacy — never build on them.
+- **The care loop is closed (Batch 5).** Tap a plant → Called/Texted/Hung out (+40/+20/+30) →
+  `GardenContext.logInteraction` → `log_interaction` RPC (weights live in the RPC's CASE;
+  `HYDRATION_WEIGHTS` client-side only mirrors them for display). Streaks are still not
+  updated by the RPC — later batch.
 - **Garden share (Batch 3):** 📸 in the TopBar → `captureRef(gardenContainerRef)` →
   `expo-sharing`. Must stay a native view snapshot (Skia snapshot would miss the RN plant layer).
 - The onboarding first-friend seed (`Onboarding9CreateAccount`) requires `signUp` to return a

@@ -31,11 +31,14 @@ import { canPlaceEntity } from '../utils/placementRules';
 import { exampleMap } from '../data/exampleMap';
 import { logPlacement } from '../utils/debugLog';
 import { supabase } from '../lib/supabase';
+import { AppState } from 'react-native';
 import {
   fetchGarden,
   createFriendWithPlant,
   persistPlantPosition,
   setGardenPausedRemote,
+  logInteractionRemote,
+  InteractionType,
   mapFrequency,
 } from '../lib/garden';
 
@@ -57,6 +60,8 @@ interface GardenContextType {
   /** Vacation freeze — while true, hydration decay is frozen (persisted per user). */
   gardenPaused: boolean;
   setGardenPaused: (paused: boolean) => Promise<void>;
+  /** Log contact with a friend (the care loop). Returns the new hydration. */
+  logInteraction: (friendId: string, type: InteractionType) => Promise<number>;
 }
 
 const GardenContext = createContext<GardenContextType | undefined>(undefined);
@@ -92,7 +97,7 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [gardenPaused, setGardenPausedState] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const { setAllFriends, appendFriend } = useFriends();
+  const { setAllFriends, appendFriend, updateFriendHydration } = useFriends();
 
   // Freshest plants for async callers (addPlant runs after awaits, when the
   // closure's `plants` may be stale).
@@ -107,8 +112,10 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
   const loadPromiseRef = useRef<Promise<void> | null>(null);
 
   const loadGardenForUser = useCallback(
-    (userId: string | null) => {
-      if (userId !== null && userId === currentUserIdRef.current) return;
+    (userId: string | null, opts?: { refresh?: boolean }) => {
+      // refresh: re-fetch for the already-loaded user (foreground decay
+      // refresh) — skips the duplicate-load guard and the loading spinner.
+      if (!opts?.refresh && userId !== null && userId === currentUserIdRef.current) return;
       currentUserIdRef.current = userId;
 
       if (!userId) {
@@ -120,7 +127,7 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
         return;
       }
 
-      setLoading(true);
+      if (!opts?.refresh) setLoading(true);
       loadPromiseRef.current = (async () => {
         try {
           const { friends, plants: loadedPlants, isPaused } = await fetchGarden(userId);
@@ -153,6 +160,18 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
+  }, [loadGardenForUser]);
+
+  // Hydration only decays at fetch time, so refresh on foreground — plants
+  // that got thirsty while the app was backgrounded update without a manual
+  // reload. Silent (no spinner) and skipped when signed out.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && currentUserIdRef.current) {
+        loadGardenForUser(currentUserIdRef.current, { refresh: true });
+      }
+    });
+    return () => sub.remove();
   }, [loadGardenForUser]);
 
   // Occupancy is derived from the plants array — never mutated directly
@@ -254,6 +273,31 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
     setGardenPausedState(paused);
   }, []);
 
+  /**
+   * Log contact with a friend. The RPC persists the restore and resets the
+   * decay clock; local state updates optimistically with the identical
+   * formula so client and DB agree without a refetch.
+   */
+  const logInteraction = useCallback(
+    async (friendId: string, type: InteractionType): Promise<number> => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not signed in');
+
+      const plant = plantsRef.current.find((p) => p.id === friendId);
+      const current = plant?.hydration ?? 0;
+      const newHydration = await logInteractionRemote(user.id, friendId, type, current);
+
+      setPlants((prev) =>
+        prev.map((p) => (p.id === friendId ? { ...p, hydration: newHydration } : p))
+      );
+      updateFriendHydration(friendId, newHydration);
+      return newHydration;
+    },
+    [updateFriendHydration]
+  );
+
   return (
     <GardenContext.Provider
       value={{
@@ -267,6 +311,7 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
         occupancy,
         gardenPaused,
         setGardenPaused,
+        logInteraction,
       }}
     >
       {children}

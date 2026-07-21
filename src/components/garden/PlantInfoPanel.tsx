@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Plant } from './PlantTile';
+import { InteractionType, HYDRATION_WEIGHTS } from '../../lib/garden';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -19,9 +20,17 @@ interface PlantInfoPanelProps {
   onClose: () => void;
   onCall?: () => void;
   onText?: () => void;
-  onLogInteraction?: () => void;
+  onLogInteraction?: (type: InteractionType) => void;
   onEditFriend?: () => void;
 }
+
+// The care loop's three log actions; weights come from the shared
+// HYDRATION_WEIGHTS so the labels can never drift from the RPC
+const LOG_ACTIONS: { type: InteractionType; icon: string; label: string }[] = [
+  { type: 'call', icon: '📞', label: 'CALLED' },
+  { type: 'text', icon: '💬', label: 'TEXTED' },
+  { type: 'manual', icon: '🤝', label: 'HUNG OUT' },
+];
 
 export default function PlantInfoPanel({
   visible,
@@ -145,15 +154,21 @@ export default function PlantInfoPanel({
                 </TouchableOpacity>
               </View>
 
-              {/* Log Interaction Button */}
-              <TouchableOpacity
-                style={[styles.button, styles.buttonFull]}
-                onPress={onLogInteraction}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.buttonIcon}>✏️</Text>
-                <Text style={styles.buttonText}>LOG INTERACTION</Text>
-              </TouchableOpacity>
+              {/* Typed log actions — the watering write path */}
+              <View style={styles.buttonRow}>
+                {LOG_ACTIONS.map((action) => (
+                  <TouchableOpacity
+                    key={action.type}
+                    style={[styles.button, styles.buttonHalf, styles.logButton]}
+                    onPress={() => onLogInteraction?.(action.type)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.buttonIcon}>{action.icon}</Text>
+                    <Text style={styles.logButtonText}>{action.label}</Text>
+                    <Text style={styles.logButtonHint}>+{HYDRATION_WEIGHTS[action.type]}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               {/* Edit Friend Button */}
               <TouchableOpacity
@@ -324,6 +339,23 @@ const styles = StyleSheet.create({
   },
   buttonFull: {
     width: '100%',
+  },
+  logButton: {
+    flexDirection: 'column',
+    gap: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  logButtonText: {
+    fontSize: 13,
+    fontFamily: 'Nunito-Bold',
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  logButtonHint: {
+    fontSize: 12,
+    fontFamily: 'Nunito-Bold',
+    color: '#F5E6D3',
   },
   buttonIcon: {
     fontSize: 20,

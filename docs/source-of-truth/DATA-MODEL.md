@@ -23,8 +23,8 @@
   `decay_rate_per_day`, frozen while `users.is_paused` (Batch 4); nothing writes decayed values
   back. **Death is CUT (ratified)** — wilt only; `is_dead`/`death_timestamp`/`revive_logs` are
   legacy.
-- `interactions` / `log_interaction`, `garden_layouts`, `decorative_items`, `artifacts`,
-  `revive_logs` are still untouched by the app.
+- `interactions` + `log_interaction` are live (Batch 5 watering). `garden_layouts`,
+  `decorative_items`, `artifacts`, `revive_logs` are still untouched by the app.
 
 ---
 
@@ -76,7 +76,7 @@ Enabled on all 8 core tables, owner-scoped via `auth.uid()`. Notes:
 |---|---|
 | `calculate_current_hydration(plant_id)` | Pure read; time-decay math, floors at 0 |
 | `update_plant_hydration(plant_id)` | Persists decay, flips `is_dead`. **Defective** — the 24h death check reads the *old* `last_hydration_update` while the same UPDATE sets it to `NOW()`, so calling this on every app open means `is_dead` can effectively never become true. |
-| `log_interaction(...)` | Main write RPC (unused by the app so far). Hydration: call 40 / text 20 / manual 30. +10 XP, clears `is_dead`, inserts `interactions`, bumps `users.total_interactions`. Does **not** update `streak_count`, `evolution_stage`, or `users.total_friends`. |
+| `log_interaction(...)` | The care loop's write RPC — called by `logInteractionRemote` (`src/lib/garden.ts`) from the plant panel (Batch 5). Decays first (`calculate_current_hydration`), then restores: call 40 / text 20 / manual 30 (client passes no `p_hydration_amount` — the CASE is the source of truth), caps at 100, resets `last_hydration_update`, +10 XP, clears `is_dead` (legacy), inserts `interactions`, bumps `users.total_interactions`. Does **not** update `streak_count`, `evolution_stage`, or `users.total_friends`. |
 | `calculate_decay_rate(p_frequency)` | 100/7, 100/14, 100/30. Arg name drift with the old hand-written types is resolved — generated `database.ts` declares `p_frequency` correctly. |
 | `handle_new_user()` | SECURITY DEFINER; inserts `public.users (id, email, phone_number, display_name)` from `NEW` + `raw_user_meta_data` (`full_name`, `phone_number`), `ON CONFLICT DO NOTHING`. |
 | `set_garden_paused(p_paused)` | SECURITY INVOKER (RLS-scoped to `auth.uid()`). Pause: stamps `users.paused_at`. Unpause: shifts every plant's `last_hydration_update` forward by the pause duration, then clears the flag. Called from the Settings toggle via `setGardenPausedRemote`. |

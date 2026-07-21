@@ -16,6 +16,7 @@ import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { Fonts, FontSizes } from '../constants/fonts';
 import { GardenCameraProvider, useGardenCamera } from '../contexts/GardenCameraContext';
 import { useGarden } from '../contexts/GardenContext';
+import { InteractionType } from '../lib/garden';
 import { Plant } from '../components/garden/PlantTile';
 
 type Props = MainTabScreenProps<'Garden'> & {
@@ -28,7 +29,7 @@ function GardenContent({ navigation, onMenuPress }: Props) {
   const [dragState, setDragState] = useState<DragState | null>(null);
 
   // Get garden state
-  const { plants, loading, updatePlantPosition, canPlaceAt } = useGarden();
+  const { plants, loading, updatePlantPosition, canPlaceAt, logInteraction } = useGarden();
 
   // Measure the garden container so gesture (window) coords and the zoom
   // origin can be expressed in container-local space (see isoMath.ts contract)
@@ -96,6 +97,18 @@ function GardenContent({ navigation, onMenuPress }: Props) {
 
   const handleClosePanel = () => {
     setSelectedPlant(null);
+  };
+
+  const handleLogInteraction = async (type: InteractionType) => {
+    if (!selectedPlant) return;
+    try {
+      const newHydration = await logInteraction(selectedPlant.id, type);
+      // selectedPlant is a snapshot, not a live reference into plants —
+      // refresh it or the panel's hydration bar won't move
+      setSelectedPlant((prev) => (prev ? { ...prev, hydration: newHydration } : prev));
+    } catch (error: any) {
+      Alert.alert('Could Not Log', error?.message ?? 'Please try again.');
+    }
   };
 
   return (
@@ -176,6 +189,7 @@ function GardenContent({ navigation, onMenuPress }: Props) {
             plant={selectedPlant}
             visible={selectedPlant !== null}
             onClose={handleClosePanel}
+            onLogInteraction={handleLogInteraction}
           />
         </View>
       </SafeAreaView>
