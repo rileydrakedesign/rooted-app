@@ -100,7 +100,7 @@ sprite + water-drop badge). **There is no death state** — ratified against the
 in the competitive research (Plant Nanny removed death; Finch never had it; every death system
 in the category is contested). `is_dead` / `death_timestamp` / `revive_logs` are legacy schema —
 never build on them. Both external docs independently reached the same conclusion ("droop,
-never die"; the economy spec's "revival" is a wilt-recovery, not a resurrection — see §6.7).
+never die"). What a lapse *can* kill is the streak — never the plant (§3.5, §6.7).
 
 ### 2.5 ✅ Pause / vacation mode
 Settings "Pause Garden" toggle → `set_garden_paused` RPC freezes decay entirely; unpause shifts
@@ -195,22 +195,24 @@ Tier 4 Phase 1.
 
 ### 3.4 💡 Plant state ladder & lapse framing
 External proposal: **Thriving → Content → Drooping → Dormant** (vs. today's binary healthy/wilt
-at ≤ 30). Lapse framing is **seasons, not streaks**: dormancy ends in visible spring regrowth on
-return — absence is a season, never a failure. Needs design; pairs with the consistency decision
-(§3.5) and is a hard prerequisite for restorations (§6.7), which are defined against the
-Drooping/Dormant states.
+at ≤ 30). With the streak system ratified (§3.5), the ladder is expressive polish rather than a
+mechanical prerequisite — wilt visuals communicate streak risk, and richer states would deepen
+that legibility. Lapse *copy* keeps the seasons framing (a wilted plant "returns in spring" on
+the next contact — absence is a season, never a failure), even though the underlying mechanic
+is a streak.
 
-### 3.5 💡 Consistency mechanic — the economy spec proposes the answer
-Schema has `streak_count` and the PRD assumed streaks, but nothing updates them — which was the
-right accident: the research is two-minded (Duolingo +22% mutual accountability vs. Snap-streak
-obligation anxiety), and the external outline said seasons-not-streaks. **The Tier 4 economy
-spec now offers a concrete resolution to ratify:** hitting per-plant cadence goals N periods
-running pays escalating point bonuses ("seasons of growth"), and missed cadence **decays the
-bonus gradually — never a cliff-edge reset**. Soft failure keeps the motivational pull of
-streaks while deleting the anxiety mechanics the research warns about. If ratified, this becomes
-the headline earner of the economy (§6.5) and finally gives `streak_count` (or a successor
-column) a job. Evolution stages (sprout/young/mature, in schema, never progressed) fold into the
-same decision.
+### 3.5 📋 Streak system (ratified direction — July 2026)
+The consistency question is settled in shape: a per-plant **connection streak** counted in
+cadence periods ("how many weeks you've kept up with this friend's frequency"), paying an
+escalating **point multiplier** the longer it runs. A lapse never harms the plant — it wilts in
+*appearance* until the next contact, and the plant, its upgrades, growth stage, and memories
+are entirely persistent — but the streak resets, restorable for a bounded window with earned
+currency (§6.7). Full algorithm, tiers, and edge cases: §6.5. `streak_count` finally gets its
+job. This supersedes the earlier "gradual bonus decay" proposal (decision record: §8.3) — the
+softness the research demands now lives in *what's at stake* (the plant never pays) rather than
+in the decay curve. Evolution stages (sprout/young/mature, in schema, never progressed) remain
+a separate open thread: growth stage is permanent progress and must never reset with the streak
+(§10.3).
 
 ### 3.6 📋 Plant journal (CRM layer, Fabriq parity)
 Per-friend: dated events (birthdays, milestones) surfaced as in-theme reminders; freeform notes;
@@ -344,12 +346,16 @@ the plant state ladder (§3.4 — restorations are defined against Drooping/Dorm
 ### 6.1 Design laws (non-negotiable)
 
 1. **Points are minted only by connection.** No login rewards, no ads, no purchasable points.
-2. **Nothing purchasable substitutes for care.** Restorations recover visual state and reset
-   the clock; only a human interaction grows a plant.
+2. **Nothing purchasable substitutes for care.** A streak restore re-arms the multiplier; only
+   a human interaction waters, grows, or un-wilts a plant.
 3. **Spending points outward.** The best sinks make the next real interaction easier, richer,
-   or kinder (gifts, restorations, music, capsules).
-4. **Soft failure.** Broken consistency decays bonuses gradually — never cliff-edge resets
-   (the anti-Snapchat-streak rule). Restorations + gradual decay are the forgiving retention pair.
+   or kinder (gifts, streak restores, music, capsules).
+4. **The plant never pays for a lapse.** A missed cadence wilts the plant's *appearance* and
+   ends the streak (multiplier resets, restorable for a bounded window) — but the plant, its
+   upgrades, growth, and memories are entirely persistent and return with the next real
+   connection. Urgency lives in the streak; permanence lives in the plant. *(Amended July
+   2026: supersedes the original "gradual bonus decay" soft-failure rule — a clean, restorable
+   streak break atop a fully persistent plant proved the better urgency/kindness split; §8.3.)*
 5. **Money never buys points, and the free recovery path stays primary.** *(Added on merge —
    this is how the economy coexists with the binding "never paywall state recovery"
    anti-feature: points come only from connecting, cash comes nowhere near recovery, and
@@ -419,24 +425,71 @@ plan since plants currently render one static PNG per species.)*
   Open: which health signals drive them without leaking specific-plant state (§10.14) —
   especially once garden visiting (§4.6) exists.
 
-### 6.5 📋 Currency: minting rules (Phase 1 core)
+### 6.5 📋 Streaks, multipliers & minting — the growth/decay algorithm (Phase 1 core)
 
-Single earned currency (points), ledgered on the existing append-only `interactions` stream —
-one logging pipeline feeds hydration, memories, and points (`plants.total_xp` +10 is the
-existing stub in this direction).
+Ratified direction (July 2026 session): a per-plant **connection streak** with a **point
+multiplier**. A lapse wilts the plant's *appearance* and kills the *streak* — never the plant.
 
-**Sources:**
-- Connection events, effort-weighted: in-person > long call > short call > light touch —
-  mirrors the trust ladder 1:1 and **assumes the §3.3 weighting rework lands first** (today's
-  weights rank calls above hangouts, which would mint backwards).
-- **Consistency bonuses (headline earner):** per-plant cadence goals hit N periods running pay
-  escalating bonuses, framed as "seasons of growth" — this is the §3.5 proposal; gated on that
-  ratification.
-- **Linked-event bonus:** both parties earn; co-op always out-earns solo (economy pressure
-  toward the Linked state, aligned with the strategic thesis).
-- **Milestone drops:** first call of the year, birthdays remembered, logged-hangout counts.
+**Definitions**
+- Cadence `C` = the friend's `contact_frequency` window (7 / 14 / 30 days) — the streak's
+  period unit. Streaks display in their own unit: "12 weeks strong," "6 months strong."
+- Streak `S` = consecutive periods containing ≥ 1 qualifying connection.
+- Per-plant state: `window_start`, `window_satisfied`, plus the existing `streak_count`.
 
-**Decay:** missed cadence decays consistency bonuses gradually (Design Law 4). Never a reset.
+**Algorithm** — evaluated lazily on log, on load, and at widget sync (no cron; the same
+pattern as client-side decay today):
+
+```
+roll_forward(t):                    # read-only for display; committed on log
+  while t >= window_start + C:
+    if window_satisfied:
+      window_start += C; window_satisfied = false
+    else:
+      streak lapses → S = 0 (restorable, §6.7); window_start = t; stop
+
+on_log(t, type):
+  roll_forward(t)
+  if not window_satisfied:
+    window_satisfied = true; S += 1
+  mint = base_points(type) × multiplier(S)      # subject to the daily cap below
+```
+
+- **One clock drives everything.** Decay is already `100/C` per day, so hydration reaches 0
+  exactly when an untouched window closes: hydration is the streak timer made visible. Wilt
+  (≤ 30) is the warning zone; an unsatisfied window near close surfaces a "streak at risk"
+  state (badge + notification hook, §3.8).
+- **Lapse consequences:** the plant appears wilted until the next connection, then returns.
+  Plant, upgrades, growth stage, memories, journal — entirely persistent. Only `S` resets.
+- **Multiplier** (stepped tiers — legible, "next tier at week 5"-displayable; values are
+  placeholders for the economy sim, §10.9): S 1–2 ×1.0 · 3–4 ×1.25 · 5–8 ×1.5 · 9–12 ×1.75 ·
+  13+ ×2.0 cap. Past the cap, milestone periods pay **cosmetic prestige** (golden pot ring,
+  bloom events §4.5) instead of more multiplier — long streaks stay visible status while the
+  economy stays bounded.
+- **Anti-farming:** the streak advances at most once per period, and full minting applies once
+  per plant per day — further same-day logs mint a small flat trickle. A zero-content action
+  must never be the optimal play (binding anti-feature).
+- **Edge cases:** cadence change recomputes windows from the change point and never
+  insta-breaks (the current window closes at the *later* of the old/new deadline); pause mode
+  (shipped) freezes the window clock exactly as it freezes decay — planned absence is always
+  free; multiple logs in one window mint but don't increment; a new plant starts at S = 1 on
+  its first contact; linked plants (§4.1–4.2) share a single streak — either side's log
+  satisfies the window, both sides mint.
+
+**Minting sources** — ledgered on the existing append-only `interactions` stream
+(`plants.total_xp` +10 is the existing stub in this direction):
+- Connection events, effort-weighted (in-person > long call > short call > light touch) ×
+  streak multiplier — **assumes the §3.3 base-point rework lands first** (today's weights rank
+  calls above hangouts, which would mint backwards).
+- **Linked-event bonus:** both parties earn; co-op always out-earns solo.
+- **Milestone drops:** streak tier-ups, first call of the year, birthdays remembered,
+  logged-hangout counts — these drop **gems**, not points (below).
+
+**Currencies — two earned types, both mint-only:**
+- **Points** (common): minted by connection as above; spent across the §6.3–6.6 catalogs.
+- **Gems** (rare, Clash-of-Clans-shaped): dropped only by milestones — streak tier-ups, blooms,
+  seasonal live-ops, linked events. Spent on streak restores (§6.7) and rare cosmetics.
+  **Earned-only at launch.** Whether gems ever become cash-purchasable is an explicitly open
+  monetization call (§7, §10.16); the free path never depends on the answer.
 
 **Explicitly excluded:** daily login rewards, ad rewards, point purchases. Monetization stays
 premium subscription + direct cosmetic purchases (§7); earned currency stays meaning-pure.
@@ -458,35 +511,35 @@ schema (close the missing-RLS defect before shipping). Content velocity concern
 (`widgetable-competitive-analysis.md`): the free mockup-to-sprite pipeline is what makes
 seasonal cadence affordable.
 
-### 6.7 💡 Restorations (the economy spec's "revivals," renamed)
+### 6.7 📋 Streak restores (supersedes "restorations")
 
-*Terminology matters here:* nothing in Rooted dies, so nothing is "revived." The mechanic is a
-**restoration** — a points purchase that recovers a Drooping/Dormant plant to healthy and resets
-its decay clock once. Renaming also keeps distance from the legacy death-era `revive_logs`
-schema, which stays untouched.
+The plant needs no purchasable recovery — the next real connection brings it back from wilt for
+free, always. What a lapse costs is the **streak**, and *that* is what can be bought back:
 
-- **Escalating price per repeated use on the same plant** — a bridge back, not a bypass; the
-  economy self-corrects because points only come from connecting (you cannot grind restorations
-  without doing the thing the app exists for). Curve shape open (§10.12).
-- Ships with a built-in reconnection prompt: *"Back on its feet — call Maya this week?"* Copy
-  always points at the friend, never at the mechanic.
-- **Gift-scope restoration:** restore your partner's plant *of you* — the "I've been the absent
-  one, I'm still here" apology/affection mechanic. The single most on-thesis purchase in the
-  economy.
-- **Reconciliation with the anti-feature list:** the binding rule is "never paywall state
-  recovery." Restorations comply because (a) they cost earned points only — money can never buy
-  points (Design Law 5); (b) the free path (log a real contact → hydration recovers) always
-  exists and stays visually primary; (c) there is no death, so the stakes are cosmetic-plus-
-  clock, never loss of the plant. If any future change lets cash touch this path, the feature is
+- **Bounded restore window:** available for one cadence period (`C`) after the lapse; after
+  that the streak is gone for good and a fresh one starts on the next contact (Snap's
+  bounded-restore pattern — an indefinite restore would make lapses meaningless).
+- **Price:** points cost scales with the streak tier being restored (long streaks are worth
+  more), with an escalation multiplier for repeat restores on the same plant inside a trailing
+  window — a bridge back, not a bypass; you cannot grind restores without doing the thing the
+  app exists for. Flat gem alternative. Curve shapes: tuning table TBD (§10.12).
+- **Restore ≠ contact:** restoring re-arms the streak, but the current window still needs a
+  real connection — ships with the reconnection prompt (*"Streak saved — call Maya this
+  week?"*). Copy always points at the friend, never at the mechanic.
+- **Gift restore** *(linked — Phase 3)*: restore your partner's streak — the "I've been the
+  absent one, I'm still here" apology mechanic survives the redesign intact and is sharper for
+  it: a streak is exactly the thing an absent partner loses.
+- **Rules that hold:** earned currency only — cash never buys a restore directly (whether cash
+  may ever buy *gems* is the open §10.16 call); the plant, its upgrades, growth, and memories
+  are never behind any restore; there is no death, so the stakes are multiplier-and-pride,
+  never loss of the plant. If any future change lets cash touch plant recovery, the feature is
   cut before the rule is.
-- Depends on the §3.4 state ladder (Drooping/Dormant don't exist yet — today's binary wilt has
-  nothing to restore *from* that a single log doesn't already fix).
 
 ### 6.8 Economy metrics & guardrails
 
 - **Economy health:** points minted per WAU; sink distribution across the five categories;
-  restoration rate per plant (high repeat-restoration = decay tuning problem, not a revenue
-  win).
+  streak-restore rate per plant (high repeat-restores = a cadence/decay tuning problem, not a
+  win); median streak length vs. cadence (are the multiplier tiers reachable?).
 - **Grounding check:** % of spend in Gift/Shared scopes — the social-spending share is the
   measure of whether the economy is pointing outward (Design Law 3).
 - **Tone gate:** every mechanic reviewed against the §1 guardrail ("could this make someone
@@ -496,9 +549,9 @@ schema, which stays untouched.
 
 | Phase | Contents | Gated on |
 |---|---|---|
-| **1** | Points ledger on logging events, consistency bonuses, plant stylistic upgrades (Self), restorations (Self) | §3.3 weighting rework, §3.5 consistency ratification, §3.4 state ladder |
+| **1** | Points + gems ledger on logging events, streak system + multiplier (§6.5), plant stylistic upgrades (Self), streak restores (Self) | §3.3 weighting rework (base-point table); economy sim (§10.9) |
 | **2** | Garden upgrades, static assets, helpers (Self) | Multi-map engine work (§6.4), `decorative_items` CHECK widening |
-| **3** | Linked scopes — Shared/Gift purchases, gift restorations, message actions (images + plant actions/haptics) | Linking (§4.1), shared logging (§4.2) |
+| **3** | Linked scopes — Shared/Gift purchases, gift streak restores, shared streaks, message actions (images + plant actions/haptics) | Linking (§4.1), shared logging (§4.2) |
 | **4** | Music Box (MusicKit), capsule slots, reactive assets, seasonal live-ops + collections | Native-module build, `artifact_templates` RLS fix |
 
 ---
@@ -512,13 +565,20 @@ the death cut. Hard rules first — these are brand-load-bearing:
 > a user and a living plant. No ads, ever. No data selling.** Privacy and no-ads are marketing
 > weapons against Widgetable, not just ethics.
 
-**Two currencies, one boundary.** With Tier 4 there are two spend systems: **money** (Garden
-Pass subscription + direct cosmetic purchases) and **earned points** (minted only by
-connection). The boundary is absolute — money never buys points, points never buy premium
-entitlements, and no urgent sink (restoration, anything care-adjacent) is ever purchasable with
-cash. Cosmetic catalog items may exist on both sides (earnable with points, included with the
-Pass) — the exact split is a tuning question (§10.9), but "earned variety converts better than
-bought variety" (Forest) says the points catalog must stay deep and real, not a token gesture.
+**Three spend systems, one boundary.** With Tier 4 there are three: **money** (Garden Pass
+subscription + direct cosmetic purchases), **earned points** (common, minted only by
+connection), and **earned gems** (rare, milestone drops — §6.5). The boundary is absolute at
+launch — money buys neither points nor gems, earned currency never buys premium entitlements,
+and no care-adjacent sink is ever purchasable with cash. Cosmetic catalog items may exist on
+both sides (earnable with points, included with the Pass) — the exact split is a tuning
+question (§10.9), but "earned variety converts better than bought variety" (Forest) says the
+points catalog must stay deep and real, not a token gesture.
+
+*The one deliberately open crack in the wall:* cash-purchasable **gems** (§10.16). Snap's
+$0.99 streak restore is platform-scale precedent that people pay to repair lapses, and a
+streak — unlike a plant — is a number about a behavior, not the friend. But it must clear the
+guardrail ("the app charged me over my friendship" must remain untellable) before it ships,
+and if it ever does, gem sinks stay streak/cosmetic-only — never plant state, never care.
 
 - **Free tier:** the entire core loop forever — logging, decay, wilt recovery, pause, linking,
   receiving all nudges, earning points — plus standard species and capped photo storage.
@@ -581,6 +641,18 @@ bought variety" (Forest) says the points catalog must stay deep and real, not a 
 | Economy metrics + tone gate | ✅ Adopted (§6.8); tone gate was already the doc-wide guardrail |
 | Build phases 1–4 | ✅ Adopted with explicit gates per phase (§6.9) |
 
+### 8.3 Streak-algorithm session (July 2026)
+
+Decisions from the follow-up design session that refined the economy's growth/decay core:
+
+| Decision | Disposition |
+|---|---|
+| Per-plant period streak + point multiplier | ✅ Ratified (§3.5, §6.5) — resolves the streaks-vs-seasons open question in favor of streaks, with plant-persistence as the kindness layer |
+| Clean streak reset on lapse (vs. gradual bonus decay) | ✅ Ratified; Design Law 4 amended — the softness moves from the decay curve to the stakes: the plant, upgrades, growth, and memories never pay for a lapse |
+| Restorations → streak restores | ✅ Superseded (§6.7) — plant recovery is free via the next contact, always; what's purchasable (earned currency) is the streak |
+| Secondary rare currency (gems, CoC-shaped) | ✅ Adopted earned-only at launch; cash purchasability held as an explicit open call (§7, §10.16) |
+| Death stays cut; cash never gates recovery | ✅ Reaffirmed after explicit challenge (Snapchat comparison) — urgency is now carried by streak loss, multiplier stakes, and the bounded restore window instead |
+
 Anti-features (from `competitive-feature-analysis.md` §3, unchanged and binding): ❌ plant death
 or any paid recovery · ❌ hollow-action streaks · ❌ cliff-edge streak resets · ❌ guilt-trip
 notification copy · ❌ ads anywhere (especially the care loop) · ❌ purchasable points or login
@@ -611,10 +683,11 @@ leaderboards.
    (launch feature vs. fast-follow). The single most roadmap-shaping unknown, flagged
    identically by both internal and external research.
 2. **Target audience** — Gen Z 18–24 vs. adults 22–40 (drives tone, pricing, invite modeling).
-3. **Consistency mechanic** — ratify (or amend) the Tier 4 proposal: escalating seasonal
-   bonuses with gradual decay (§3.5); decide what wires `streak_count` / `evolution_stage`.
+3. **Evolution stages** — with streaks ratified (§3.5), what progresses sprout → young →
+   mature? (Time alive, total interactions, or multiplier tiers reached — must be permanent,
+   never streak-reset.)
 4. **Interaction weights** — in-person-first re-ranking and/or type simplification (§3.3);
-   now also gates economy Phase 1 minting.
+   gates economy Phase 1 minting (the base-point table multiplies through everything).
 5. **Species taxonomy** — how many at launch; are relationship archetypes user-legible?
 6. **Linking asymmetry** — what the solo user sees about a declined/ignored invite.
 7. **Photo storage architecture and the free-tier cap** — drives COGS and the premium boundary.
@@ -623,13 +696,20 @@ leaderboards.
    Phase 1 ships (§6.5); the points-vs-Pass catalog split (§7).
 10. **MusicKit scope** — implementation depth, Spotify timeline, non-subscriber preview UX.
 11. **Shared-purchase cost** — split between partners or single-payer only?
-12. **Restoration escalation curve** — linear vs. exponential; per-plant cooldown?
+12. **Streak-restore pricing** — tier-scaling curve × repeat-escalation shape (linear vs.
+    exponential; per-plant cooldown?); flat gem price point.
 13. **Background haptics** — delivery constraints when the app is backgrounded
     (notification-tap trigger vs. widget context).
 14. **Reactive-asset signals** — which aggregate health signals drive them without leaking
     specific-plant state.
 15. **Capsule slots boundary** — earned-points slots vs. the Pass's "time capsules" feature:
     where does free/earned end and premium begin?
+16. **Cash-purchasable gems** — the deliberate open crack in the money/earned wall (§7): Snap
+    precedent for, brand guardrail against. Decide before Phase 1 ships (it shapes the ledger).
+17. **Grace & backdating** — formal grace period on window close (none vs. ~1 day for weekly)?
+    How far back can a log be dated ("we hung out Tuesday," logged Friday)?
+18. **Long-cadence fairness** — monthly friends climb multiplier tiers 4× slower in real time
+    than weekly ones. Per-period tiers (fair per-commitment) vs. time-normalized tiers?
 
 ---
 
@@ -652,8 +732,8 @@ leaderboards.
 | Reminder-first nudge flow (L2) + calendar confirm cards | 1 | 📋 |
 | Auto-detected calls (L1, CallKit) | 1 | 💡 spike-gated |
 | Interaction weight rework / simplification | 1 | 💡 (gates economy Phase 1) |
-| Plant state ladder + seasons framing | 1 | 💡 (gates restorations) |
-| Consistency mechanic (seasonal bonuses, soft decay) | 1 | 💡 (Tier 4 proposal pending ratification) |
+| Plant state ladder (expressive polish) + seasons copy | 1 | 💡 |
+| Streak system + point multiplier (algorithm §6.5) | 1/4 | 📋 ratified direction |
 | Plant journal (notes, birthdays, milestones, gifts) | 1 | 📋 (base free forever) |
 | Photo memories (solo wall) | 1 | 📋 |
 | Notifications (plant-voiced, capped, state-aware) | 1 | 📋 |
@@ -669,15 +749,15 @@ leaderboards.
 | Postcard exports (digital → printed) | 3 | 💡 |
 | Voice-note watering | 3 | 💡 (P2, deferred) |
 | Grove view (groups) | v2 | deferred |
-| Points ledger + minting on log events | 4 (P1) | 📋 |
-| Consistency ("seasons of growth") bonuses | 4 (P1) | 💡 (pending §3.5) |
+| Points + gems ledger, minting on log events | 4 (P1) | 📋 |
+| Streak multiplier tiers + prestige milestones | 4 (P1) | 📋 (values need economy sim) |
 | Plant stylistic upgrades (Self) | 4 (P1) | 📋 |
-| Restorations (Self, earned points, escalating) | 4 (P1) | 💡 (needs state ladder) |
+| Streak restores (points/gems, bounded window, escalating) | 4 (P1) | 📋 |
 | Garden upgrades (themes, weather, soundscapes, layouts) | 4 (P2) | 💡 (multi-map prereq) |
 | Static assets + reactive subset | 4 (P2) | 💡 |
 | Helpers (Self, functional-lite creatures) | 4 (P2) | 💡 |
 | Gift / Shared purchase scopes | 4 (P3) | 📋 (needs linking) |
-| Gift restorations ("I've been the absent one") | 4 (P3) | 💡 |
+| Gift streak restores ("I've been the absent one") + shared linked streaks | 4 (P3) | 📋 |
 | Message actions (images, plant actions, haptic signatures) | 4 (P3) | 💡 |
 | Music Box (MusicKit; Spotify fast-follow) | 4 (P4) | 💡 |
 | Capsule slots | 4 (P4) | 💡 (premium boundary open) |
