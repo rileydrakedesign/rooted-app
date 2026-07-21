@@ -1,17 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, BorderRadius, Spacing } from '../../constants/theme';
+import { TileCoord } from '../../types/garden';
 
 export interface Plant {
   id: string;
   friendName: string;
-  plantType: 'cactus' | 'sunflower' | 'fern' | 'rose' | 'succulent' | 'ivy' | 'monstera' | 'bamboo';
+  plantType: 'cactus' | 'sunflower' | 'fern' | 'rose' | 'succulent' | 'ivy' | 'monstera' | 'bamboo' | 'ficus';
   stage: 1 | 2 | 3 | 4; // Growth stages
   hydration: number; // 0-100
-  position: {
-    x: number; // 0-5 (grid coordinate)
-    y: number; // 0-5 (grid coordinate)
-  };
+  position: TileCoord; // Grid tile the plant stands on (the only position it stores)
   image?: any; // Optional image asset
 }
 
@@ -32,6 +30,7 @@ export const PLANT_EMOJIS: Record<Plant['plantType'], string> = {
   ivy: '🍃',
   monstera: '🌱',
   bamboo: '🎋',
+  ficus: '🪴',
 };
 
 export default function PlantTile({

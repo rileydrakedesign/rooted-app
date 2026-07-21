@@ -1,0 +1,162 @@
+{
+  "style": {
+    "description": "Cozy chunky pixel art. Plants: front-facing potted plants in terracotta pots, single-color dark outlines, medium shading, warm saturated palette. Tiles: isometric grass-top block with dirt cross-section, lineless, basic shading.",
+    "references": [
+      "assets/images/plants/cactus-plant.png",
+      "assets/images/plants/sunflower-plant.png",
+      "assets/images/plants/monstera-plant.png",
+      "assets/images/plants/ficus-plant.png",
+      "assets/images/garden/garden-background.png",
+      "assets/images/garden/garden-foreground.png"
+    ]
+  },
+  "tile_pipeline": "Terrain tiles are post-processed, never used raw. Raw PixelLab output lives in assets/images/garden/tiles/raw/. Pipeline: (1) scripts/seamless_tile.py strips the diorama fringe so tops run clean to the diamond edges; (2) scripts/mockup_tile.py rebuilds the grass tile by UV-sampling singleTileGarden.png directly (top + dirt sides + lip), harvests flower pixels onto the flowers variant, and gives soil/path/water the same mockup dirt sides. Rerun both after regenerating any raw tile.",
+  "assets": [
+    {
+      "file": "assets/images/garden/tiles/grass-block-64.png",
+      "tool": "create_isometric_tile",
+      "pixellab_id": "8b777e22-899f-4aa2-9e0a-9e24885e0dbb",
+      "description": "bright green grass turf on top, sides are plain smooth dark brown earth soil like a mud cross-section underground dirt with tiny roots",
+      "settings": {
+        "tile_shape": "block",
+        "size": 64,
+        "shading": "basic shading",
+        "outline": "lineless",
+        "seed": 1337
+      },
+      "generated": "2026-07-10",
+      "notes": "Live grass tile (TILE_IMAGES[2]). Seed 1337 is the terrain style anchor for future tiles. Two earlier attempts with seed 42 produced red-brick sides; first kept as grass-block-brick-64.png (alt), second discarded (id 7410db00-bf7d-4982-8ed7-e0648477fe59)."
+    },
+    {
+      "file": "assets/images/garden/tiles/soil-tilled-block-64.png",
+      "tool": "create_isometric_tile",
+      "pixellab_id": "0ea35108-3318-419a-82cb-89ffc555a9bc",
+      "description": "dark brown tilled garden soil with neat furrow rows on top, sides are plain smooth dark brown earth soil cross-section underground dirt",
+      "settings": { "tile_shape": "block", "size": 64, "shading": "basic shading", "outline": "lineless", "seed": 1337 },
+      "generated": "2026-07-10",
+      "notes": "Live — tile ID 3, planting bed (only placeable tile type)."
+    },
+    {
+      "file": "assets/images/garden/tiles/path-cobble-block-64.png",
+      "tool": "create_isometric_tile",
+      "pixellab_id": "781410bc-40a4-4d35-b061-73088227121a",
+      "description": "light gray cobblestone paving path on top, sides are plain smooth dark brown earth soil cross-section underground dirt",
+      "settings": { "tile_shape": "block", "size": 64, "shading": "basic shading", "outline": "lineless", "seed": 1337 },
+      "generated": "2026-07-10",
+      "notes": "Live — tile ID 4."
+    },
+    {
+      "file": "assets/images/garden/tiles/water-block-64.png",
+      "tool": "create_isometric_tile",
+      "pixellab_id": "34875822-3b5c-4af5-a13e-e4292274c2d4",
+      "description": "clear blue pond water surface with gentle ripples on top, sides are plain smooth dark brown earth soil cross-section underground dirt",
+      "settings": { "tile_shape": "block", "size": 64, "shading": "basic shading", "outline": "lineless", "seed": 1337 },
+      "generated": "2026-07-10",
+      "notes": "Live — tile ID 5, not walkable."
+    },
+    {
+      "file": "assets/images/garden/tiles/grass-flowers-block-64.png",
+      "tool": "create_isometric_tile",
+      "pixellab_id": "648d3025-d475-4911-bec8-43bf3dc08e41",
+      "description": "bright green grass turf with a few tiny white and yellow wildflowers on top, sides are plain smooth dark brown earth soil cross-section underground dirt",
+      "settings": { "tile_shape": "block", "size": 64, "shading": "basic shading", "outline": "lineless", "seed": 1337 },
+      "generated": "2026-07-10",
+      "notes": "Live — tile ID 6, grass accent variant."
+    },
+    {
+      "file": "assets/images/garden/walls/wall-front-strip.png",
+      "tool": "scripts/wall_strips.py",
+      "source": "assets/images/garden/garden-foreground1.png",
+      "settings": { "target": "front", "grid": 10, "h_up": 88, "h_down": 20, "world_anchor": [-202, 0] },
+      "generated": "2026-07-10",
+      "notes": "Front perimeter wall L (404x212, both wings + gate arch), UV-sampled onto exact grid geometry. Wall gap on the left wing aligns with the path exit at i=5. Rendered by WallOverlay above plants (zIndex 500); anchor constants live in src/data/walls.ts. Rerun script after editing the mockup."
+    },
+    {
+      "file": "assets/images/garden/walls/wall-back-strip.png",
+      "tool": "scripts/wall_strips.py",
+      "source": "assets/images/garden/garden-background.png",
+      "settings": { "target": "back", "grid": 10, "h_up": 40, "foot": 10, "world_anchor": [-202, -52] },
+      "generated": "2026-07-10",
+      "notes": "Back perimeter wall L (404x154), UV-sampled onto exact grid geometry. Drawn in TileMap's Skia canvas after tiles (grass foot overlaps back tile rims); plants always render in front. Anchor constants in src/data/walls.ts."
+    },
+    {
+      "file": "assets/images/garden/tiles/grass-block-brick-64.png",
+      "tool": "create_isometric_tile",
+      "pixellab_id": "90688a5e-d058-40c4-8aa4-4681eb08cf79",
+      "description": "lush green grass on top of rich brown dirt, garden soil cross-section, cozy pixel art",
+      "settings": {
+        "tile_shape": "block",
+        "size": 64,
+        "shading": "basic shading",
+        "outline": "lineless",
+        "seed": 42
+      },
+      "generated": "2026-07-10",
+      "notes": "Alternate: sides rendered as red brick — could suit a raised-bed or path border tile."
+    },
+    {
+      "file": "assets/images/plants/pixel/sunflower-128.png",
+      "tool": "scripts/pixelize.py",
+      "source": "assets/images/plants/sunflower-plant.png",
+      "settings": { "size": 128, "colors": 32, "trim": true },
+      "generated": "2026-07-10",
+      "notes": "Live sprite (47x128, 31 colors). De-faked from the AI mockup — median cell sampling + palette quantization + margin trim. Same recipe for cactus/monstera/ficus-128.png. Edit in Aseprite (Indexed color mode), export back to same path."
+    },
+    {
+      "file": "assets/images/plants/pixel/sunflower-128-pixellab.png",
+      "tool": "create_map_object",
+      "pixellab_id": "46009fdf-9741-44a7-b6c6-bf8c8f2f3196",
+      "description": "potted sunflower in a terracotta pot, tall green stem with leaves, large yellow flower head, cozy pixel art, dark outline",
+      "settings": {
+        "view": "side",
+        "width": 128,
+        "height": 128,
+        "outline": "single color outline",
+        "shading": "medium shading",
+        "detail": "medium detail"
+      },
+      "generated": "2026-07-10",
+      "notes": "Archived — superseded by pixelized mockup. Front-facing side view; user wants the mockups' subtle 3/4 perspective. A 'low top-down' view retry (id 3a1efe5e-f31f-41ff-82da-d3f44be38d47, not saved) got the perspective right but the style flatter; use view='low top-down' + high detail for future net-new PixelLab objects."
+    },
+    {
+      "file": "assets/images/plants/pixel/cactus-128-pixellab.png",
+      "tool": "create_map_object",
+      "pixellab_id": "4b074cb8-f069-472b-b360-5a0d31a1be94",
+      "description": "tall green saguaro cactus with small red flowers in a terracotta pot, white spines, cozy pixel art, dark outline",
+      "settings": {
+        "view": "side",
+        "width": 128,
+        "height": 128,
+        "outline": "single color outline",
+        "shading": "medium shading",
+        "detail": "medium detail"
+      },
+      "generated": "2026-07-10",
+      "notes": "Archived — superseded by pixelized mockup."
+    },
+    {
+      "file": "assets/images/plants/pixel/cactus-128.png",
+      "tool": "scripts/pixelize.py",
+      "source": "assets/images/plants/cactus-plant.png",
+      "settings": { "size": 128, "colors": 32, "trim": true },
+      "generated": "2026-07-10",
+      "notes": "Live sprite (54x128, 31 colors)."
+    },
+    {
+      "file": "assets/images/plants/pixel/monstera-128.png",
+      "tool": "scripts/pixelize.py",
+      "source": "assets/images/plants/monstera-plant.png",
+      "settings": { "size": 128, "colors": 32, "trim": true },
+      "generated": "2026-07-10",
+      "notes": "Live sprite (106x128, 31 colors)."
+    },
+    {
+      "file": "assets/images/plants/pixel/ficus-128.png",
+      "tool": "scripts/pixelize.py",
+      "source": "assets/images/plants/ficus-plant.png",
+      "settings": { "size": 128, "colors": 32, "trim": true },
+      "generated": "2026-07-10",
+      "notes": "Live sprite (48x128, 31 colors)."
+    }
+  ]
+}

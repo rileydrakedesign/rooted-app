@@ -1,22 +1,700 @@
-CommandError: Failed to build iOS project. "xcodebuild" exited with error code 70.
-To view more error logs, try building the app with Xcode directly, by opening /Users/rileydrake/Desktop/rooted_app/ios/Rooted.xcworkspace.
-
-Command line invocation:
-    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace /Users/rileydrake/Desktop/rooted_app/ios/Rooted.xcworkspace -configuration Debug -scheme Rooted -destination id=00008140-00142D9836D1801C DEVELOPMENT_TEAM=FN5RBHR69S -allowProvisioningUpdates -allowProvisioningDeviceRegistration
-
-User defaults from command line:
-    IDEPackageSupportUseBuiltinSCM = YES
-
-Build settings from command line:
-    DEVELOPMENT_TEAM = FN5RBHR69S
-
-
-
-2025-12-08 22:35:40.191 xcodebuild[43129:98120694]  DVTDeveloperAccountManager: Failed to load credentials for rileydrakedesign@gmail.com: Error Domain=DVTDeveloperAccountCredentialsError Code=0 "Invalid credentials in keychain for rileydrakedesign@gmail.com, missing Xcode-Token" UserInfo={NSLocalizedDescription=Invalid credentials in keychain for rileydrakedesign@gmail.com, missing Xcode-Token}
-2025-12-08 22:36:40.382 xcodebuild[43129:98120634] Writing error result bundle to /var/folders/hc/cjx22mjj0tn28b6t8lr4_qgr0000gn/T/ResultBundle_2025-08-12_22-36-0040.xcresult
-xcodebuild: error: Timed out waiting for all destinations matching the provided destination specifier to become available
-
-
-        Available destinations for the "Rooted" scheme:
-                { platform:iOS, arch:arm64, id:00008140-00142D9836D1801C, name:iPhone 13 (2), error:iPhone 13 (2) needs to be prepared for development Development services need to be enabled. Ensure that the device is unlocked. }
-Build logs written to /Users/rileydrake/Desktop/rooted_app/.expo/xcodebuild.log
+ LOG  📱 SCREEN DIMENSIONS: {"center": {"x": 201, "y": 437}, "height": 874, "width": 402}
+ WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/th3rdwave/react-native-safe-area-context
+ LOG  📐 [COORDS] TILEMAP CAMERA INIT: {
+  "screen": {
+    "width": 402,
+    "height": 874
+  },
+  "target": {
+    "x": 201,
+    "y": 357
+  }
+}
+[RemoteTextInput] -[RTIInputSystemClient remoteTextInputSessionWithID:performInputOperation:]
+perform input operation requires a valid sessionID. inputModality = Keyboard, inputOperation =
+<null selector>, customInfoType = UIEmojiSearchOperations
+ LOG  📐 [COORDS] CAMERA SYNC: {
+  "context": {
+    "cameraX": 201,
+    "cameraY": 357,
+    "scale": 1,
+    "panOffsetX": 0
+  },
+  "shared": {
+    "cameraX": 0,
+    "cameraY": 0,
+    "scale": 1,
+    "panOffsetX": 0
+  }
+}
+ LOG  📐 [COORDS] POSITION SYNC: {
+  "plantId": "friend-1766043769402",
+  "gridPos": {
+    "i": 0,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "anchor": {
+    "x": 201,
+    "y": 312
+  },
+  "finalPosition": {
+    "x": 163.5,
+    "y": 248.25
+  }
+}
+ LOG  📐 [COORDS] TILEMAP CAMERA INIT: {
+  "screen": {
+    "width": 402,
+    "height": 874
+  },
+  "target": {
+    "x": 201,
+    "y": 357
+  }
+}
+ LOG  📐 [COORDS] CAMERA SYNC: {
+  "context": {
+    "cameraX": 0,
+    "cameraY": 0,
+    "scale": 1,
+    "panOffsetX": 0
+  },
+  "shared": {
+    "cameraX": 0,
+    "cameraY": 0,
+    "scale": 1,
+    "panOffsetX": 0
+  }
+}
+ LOG  📐 [COORDS] POSITION SYNC: {
+  "plantId": "friend-1766043769402",
+  "gridPos": {
+    "i": 0,
+    "j": 0
+  },
+  "camera": {
+    "x": 0,
+    "y": 0
+  },
+  "scale": 1,
+  "anchor": {
+    "x": 0,
+    "y": -45
+  },
+  "finalPosition": {
+    "x": -37.5,
+    "y": -108.75
+  }
+}
+ LOG  📐 [COORDS] CAMERA SYNC: {
+  "context": {
+    "cameraX": 201,
+    "cameraY": 357,
+    "scale": 1,
+    "panOffsetX": 0
+  },
+  "shared": {
+    "cameraX": 0,
+    "cameraY": 0,
+    "scale": 1,
+    "panOffsetX": 0
+  }
+}
+ LOG  📐 [COORDS] POSITION SYNC: {
+  "plantId": "friend-1766043769402",
+  "gridPos": {
+    "i": 0,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "anchor": {
+    "x": 201,
+    "y": 312
+  },
+  "finalPosition": {
+    "x": 163.5,
+    "y": 248.25
+  }
+}
+ LOG  🎯 [DRAG] START: {
+  "fingerScreen": {
+    "x": 34.83332824707031,
+    "y": 82.75
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "plantPos": {
+    "x": 0,
+    "y": 0
+  },
+  "screenSize": {
+    "width": 402,
+    "height": 874
+  },
+  "zoomOrigin": {
+    "x": 201,
+    "y": 437
+  }
+}
+ LOG  📐 [COORDS] Screen → World: {
+  "screen": {
+    "x": 34.83332824707031,
+    "y": 82.75
+  },
+  "world": {
+    "x": 34.83332824707031,
+    "y": 82.75
+  },
+  "tileBaseY": 127.75
+}
+ LOG  📐 [COORDS] World → Grid: {
+  "world": {
+    "x": 34.83332824707031,
+    "y": 127.75
+  },
+  "grid": {
+    "i": -16,
+    "j": -7
+  }
+}
+ LOG  📐 [COORDS] Grid → Plant Position: {
+  "grid": {
+    "i": -16,
+    "j": -7
+  },
+  "tileBase": {
+    "x": 21,
+    "y": 127
+  },
+  "anchorWorld": {
+    "x": 21,
+    "y": 82
+  },
+  "anchorScreen": {
+    "x": 21,
+    "y": 82
+  },
+  "plantTopLeft": {
+    "x": -16.5,
+    "y": 18.25
+  }
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -16,
+    "j": -7
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 21,
+    "y": 127
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 2,
+    "j": 1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 221,
+    "y": 387
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -9,
+    "j": -3
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 81,
+    "y": 237
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -7,
+    "j": -2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 101,
+    "y": 267
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 3,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 221,
+    "y": 407
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 3,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 221,
+    "y": 407
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -7,
+    "j": -2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 101,
+    "y": 267
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 3,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 221,
+    "y": 407
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -7,
+    "j": -2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 101,
+    "y": 267
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 3,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 221,
+    "y": 407
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 3,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 221,
+    "y": 407
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -6,
+    "j": -2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 121,
+    "y": 277
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 2,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 201,
+    "y": 397
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -5,
+    "j": -2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 141,
+    "y": 287
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 1,
+    "j": 1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 201,
+    "y": 377
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -4,
+    "j": -1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 141,
+    "y": 307
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 0,
+    "j": 1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 181,
+    "y": 367
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -3,
+    "j": -1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 317
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 0,
+    "j": 1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 181,
+    "y": 367
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -2,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 337
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -2,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 337
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 0,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 377
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -2,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 337
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 0,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 377
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -2,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 337
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 0,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 377
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -2,
+    "j": 0
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 337
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": 0,
+    "j": 2
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 377
+  },
+  "valid": true
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -1,
+    "j": 1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 357
+  },
+  "valid": false
+}
+ LOG  📐 [COORDS] TILE HIGHLIGHT: {
+  "hoveredTile": {
+    "i": -1,
+    "j": 1
+  },
+  "camera": {
+    "x": 201,
+    "y": 357
+  },
+  "scale": 1,
+  "screenPos": {
+    "x": 161,
+    "y": 357
+  },
+  "valid": false
+}
+ LOG  🎯 [DRAG] END: {
+  "finalScreen": {
+    "x": 162.46235575477726,
+    "y": 318.93096254219176
+  },
+  "hoveredTile": {
+    "i": -1,
+    "j": 1,
+    "k": 0
+  },
+  "plantCurrentPos": {
+    "x": 0,
+    "y": 0
+  }
+}
+ LOG  🎯 [DRAG] END - Validation: {
+  "tile": {
+    "i": -1,
+    "j": 1,
+    "k": 0
+  },
+  "valid": false,
+  "reason": "Tile (-1, 1, 0) is out of bounds"
+}
+ LOG  🎯 [DRAG] END - Invalid, snapping back: {
+  "reason": "Tile (-1, 1, 0) is out of bounds"
+}
