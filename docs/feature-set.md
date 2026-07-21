@@ -5,6 +5,9 @@ everything deliberately rejected — with each item's status and source.*
 
 **How this doc relates to the others:**
 
+- `docs/app-spec.md` is the slim, user-perspective companion — the designed experience in
+  plain language, without status tracking. This doc holds the statuses, evidence, and open
+  questions behind it.
 - `docs/source-of-truth/` describes what **is** (canonical; wins on any conflict about current
   behavior).
 - `docs/prd.md` is the original MVP PRD (Dec 2025) — partially superseded; where it conflicts
