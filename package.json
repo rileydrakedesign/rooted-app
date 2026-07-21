@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo-google-fonts/nunito": "^0.4.2",
     "@expo-google-fonts/rubik": "^0.4.2",
     "@expo-google-fonts/vt323": "^0.4.1",
@@ -20,6 +21,7 @@
     "@supabase/supabase-js": "^2.86.2",
     "canvas": "^3.2.0",
     "expo": "~54.0.27",
+    "expo-build-properties": "^57.0.6",
     "expo-constants": "^18.0.11",
     "expo-dev-client": "~6.0.20",
     "expo-font": "^14.0.10",
@@ -37,6 +39,7 @@
     "react-native-view-shot": "4.0.3"
   },
   "devDependencies": {
+    "@hackernoon/pixel-icon-library": "^1.1.0",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "^54.0.8",
     "typescript": "~5.9.2"

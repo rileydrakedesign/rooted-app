@@ -13,10 +13,10 @@
 
 - `src/types/database.ts` is **generated from the live schema** (Supabase MCP
   `generate_typescript_types`, 2026-07-16). Never hand-edit it; regenerate after any migration.
-  Use its `Tables<'name'>` helper for row types (see `ProfileScreen`).
+  Use its `Tables<'name'>` helper for row types (see `src/lib/garden.ts`).
 - `handle_new_user()` (SECURITY DEFINER, `AFTER INSERT ON auth.users`) now creates the
   `public.users` row on signup; pre-existing auth users were backfilled. `SignUpScreen`'s
-  `users` update and `ProfileScreen`'s select now have a row to hit.
+  `users` update now has a row to hit (`ProfileScreen` was deleted in the UI/UX refactor).
 - `friends` + `plants` are read/written by the app through **`src/lib/garden.ts`** — the only
   data-access layer for garden state. `FriendsContext`/`GardenContext` load per signed-in user
   and clear on sign-out. Hydration **decays client-side at load** from `last_hydration_update` ×

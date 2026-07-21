@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
-import { MainTabScreenProps } from '../types/navigation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MainStackScreenProps } from '../types/navigation';
+import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { Fonts, FontSizes } from '../constants/fonts';
-import { PixelButton, ProgressBar, BackButton } from '../components';
+import { PixelButton, ProgressBar, BackButton, PixelIcon } from '../components';
 import { useGarden } from '../contexts/GardenContext';
 import { STARTER_PLANTS } from '../data/plantCatalog';
 
-type Props = MainTabScreenProps<'ChoosePlant'>;
+type Props = MainStackScreenProps<'ChoosePlant'>;
 
+/** Step 3 of the main add-friend flow (name → frequency → plant). */
 export default function ChoosePlantScreen({ navigation, route }: Props) {
-  const { friendName } = route.params;
+  const { friendName, frequency } = route.params;
+  const insets = useSafeAreaInsets();
   const { addPlant } = useGarden();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -28,9 +32,9 @@ export default function ChoosePlantScreen({ navigation, route }: Props) {
     if (saving) return;
     setSaving(true);
     try {
-      await addPlant(friendName, currentPlant.plantType, currentPlant.image);
-      // Navigate back to Garden
-      navigation.navigate('Garden');
+      await addPlant(friendName, currentPlant.plantType, currentPlant.image, frequency);
+      // Back to the tabs (whichever tab launched the flow)
+      navigation.popToTop();
     } catch (error: any) {
       Alert.alert('Could Not Add Friend', error?.message ?? 'Please try again.');
     } finally {
@@ -39,26 +43,27 @@ export default function ChoosePlantScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top + Spacing.small, paddingBottom: insets.bottom + Spacing.large },
+      ]}
+    >
       {/* Header with back button and progress bar */}
       <View style={styles.header}>
         <BackButton onPress={() => navigation.goBack()} />
         <View style={styles.progressContainer}>
-          <ProgressBar current={2} total={4} />
+          <ProgressBar current={3} total={3} />
         </View>
       </View>
 
       <View style={styles.content}>
-        {/* Title */}
         <Text style={styles.title}>CHOOSE THEIR PLANT!</Text>
 
         {/* Plant Display with Navigation */}
         <View style={styles.plantContainer}>
-          <TouchableOpacity
-            style={styles.arrowButton}
-            onPress={handlePrevious}
-          >
-            <Text style={styles.arrowText}>{'<'}</Text>
+          <TouchableOpacity style={styles.arrowButton} onPress={handlePrevious}>
+            <PixelIcon name="arrow-left" size={22} color={Colors.warmWood} />
           </TouchableOpacity>
 
           <View style={styles.plantDisplay}>
@@ -66,24 +71,18 @@ export default function ChoosePlantScreen({ navigation, route }: Props) {
             <Text style={styles.plantName}>{currentPlant.name}</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.arrowButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.arrowText}>{'>'}</Text>
+          <TouchableOpacity style={[styles.arrowButton, styles.arrowFlipped]} onPress={handleNext}>
+            <PixelIcon name="arrow-left" size={22} color={Colors.warmWood} />
           </TouchableOpacity>
         </View>
 
-        {/* Plant Description */}
         <Text style={styles.description}>{currentPlant.description}</Text>
 
-        {/* Plant Counter */}
         <Text style={styles.counter}>
           {currentIndex + 1} / {STARTER_PLANTS.length}
         </Text>
       </View>
 
-      {/* Select Button */}
       <PixelButton
         title={saving ? 'Planting...' : 'SELECT PLANT'}
         onPress={handleSelect}
@@ -96,9 +95,7 @@ export default function ChoosePlantScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5E6D3',
-    paddingTop: 50,
-    paddingBottom: 50,
+    backgroundColor: Colors.cream,
     paddingHorizontal: 20,
   },
   header: {
@@ -120,7 +117,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.titleMedium,
     fontFamily: Fonts.heading,
     fontWeight: 'bold',
-    color: '#8B4513',
+    color: Colors.warmWood,
     marginBottom: 60,
     textAlign: 'center',
   },
@@ -135,26 +132,24 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#DEB887',
+    backgroundColor: Colors.tanTrack,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: '#8B4513',
+    borderColor: Colors.warmWood,
   },
-  arrowText: {
-    fontSize: 24,
-    color: '#8B4513',
-    fontWeight: 'bold',
+  arrowFlipped: {
+    transform: [{ scaleX: -1 }],
   },
   plantDisplay: {
     width: 200,
     height: 200,
-    backgroundColor: '#DEB887',
-    borderRadius: 10,
+    backgroundColor: Colors.tanTrack,
+    borderRadius: BorderRadius.medium,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 20,
     borderWidth: 3,
-    borderColor: '#8B4513',
+    borderColor: Colors.warmWood,
   },
   plantImage: {
     width: 120,
@@ -163,21 +158,21 @@ const styles = StyleSheet.create({
   plantName: {
     fontSize: FontSizes.bodyLarge,
     fontFamily: Fonts.subtext,
-    color: '#8B4513',
+    color: Colors.warmWood,
     fontWeight: 'bold',
     marginTop: 10,
   },
   description: {
     fontSize: FontSizes.bodySmall,
     fontFamily: Fonts.subtext,
-    color: '#A0826D',
+    color: Colors.textBrownMuted,
     textAlign: 'center',
     marginBottom: 10,
   },
   counter: {
     fontSize: FontSizes.bodySmall,
     fontFamily: Fonts.subtext,
-    color: '#A0826D',
+    color: Colors.textBrownMuted,
     textAlign: 'center',
     marginTop: 10,
   },

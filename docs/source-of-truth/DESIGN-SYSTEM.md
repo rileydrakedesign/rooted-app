@@ -21,6 +21,10 @@ is missing, add it there.
 | Hydration status | `hydrationHigh` `#4CAF50` (60–100) · `hydrationMedium` `#FFC107` (20–59) · `hydrationLow` `#F44336` (0–19) · `streakGold` `#FFD700` |
 | Text / UI | `textPrimary` `#212121` · `textSecondary` `#757575` · `border` `#E0E0E0` · `white` · `black` · `transparent` |
 | Buttons | `buttonPrimary` `#B8916B` · `buttonPrimaryLight` `#D4A574` (top/left edge) · `buttonPrimaryDark` `#8B6F47` (bottom/right edge) |
+| Brown text | `textBrown` `#6B4423` (labels/icons on beige) · `textBrownMuted` `#A0826D` (secondary) |
+| Pixel-card chrome | `pixelBorder` `#8B6F47` · `cream` `#F5E6D3` (sheets) · `tanTrack` `#DEB887` (bar tracks) · `dividerTan` `#E8C9A0` |
+| Semantic status | `danger` `#D32F2F` · `success` `#4CAF50` · `warning` `#FFC107` |
+| Accents | `wheat` `#F5DEB3` · `saddleBrown` `#8B4513` · `mintSurface` `#E8F5E9` |
 | Misc | `notificationOrange` `#FF9F66` |
 
 **`Spacing`** `tiny` 4 · `small` 8 · `medium` 16 · `large` 24 · `xLarge` 32
@@ -53,11 +57,26 @@ Compose these; don't rebuild them per-screen.
 |---|---|
 | `PixelButton` | The primary CTA. 3-tone beveled pixel edges from the `buttonPrimary*` tokens. |
 | `PixelInput` | Text field in the pixel style; VT323 at `inputText`. |
-| `ProgressBar` | Hydration / onboarding progress. Color it from the hydration tokens. |
-| `BackButton` | Standard back affordance (headers are hidden app-wide). |
+| `ProgressBar` | Onboarding/flow step progress. |
+| `BackButton` | Standard back affordance (headers are hidden app-wide); renders the `arrow-left` PixelIcon. |
+| `PixelIcon` | **The app's only icon primitive — never use emoji as UI.** `<PixelIcon name size color />`. |
+| `PixelCard` | The chunky 2/2/4/4-bordered card (list rows, settings groups). Pass `onPress` to make it tappable. |
+| `HydrationBar` | The hydration meter, compact (12) or chunky-labeled (48). Also exports `getHydrationColor()` — the only home of the hydration color ramp. |
+| `ScreenHeader` | Centered title + optional back + optional right action + divider. Every non-garden screen header. |
+| `BottomSheet` | Modal sheet shell (backdrop dismiss, handle, cream pixel panel). All popups/selectors build on it. |
+| `FrequencyPicker` | Contact-frequency option list, shared by onboarding step 5 and the main `SetFrequency` screen. |
 
 Garden-specific components (`TileMap`, `DraggablePlant`, `PlantInfoPanel`, `TopBar`) are documented
 in [`GARDEN.md`](GARDEN.md).
+
+### Icons — HackerNoon Pixel Icon Library
+
+Icon SVGs are **vendored** into `src/components/icons/pixelIcons.ts` (auto-generated — do not
+hand-edit) from `@hackernoon/pixel-icon-library`'s `regular` set by
+`scripts/gen-pixel-icons.js`; add a name to that script's `ICONS` map and re-run it to add an
+icon. Rendered via `react-native-svg`'s `SvgXml`; the single-color 24×24 icons inherit `fill`,
+so `PixelIcon`'s `color` prop tints them. **License: CC BY 4.0** — attribution lives in the
+Help screen and README; keep it when shipping.
 
 ---
 

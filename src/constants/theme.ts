@@ -32,6 +32,26 @@ export const Colors = {
 
   // Notification
   notificationOrange: '#FF9F66', // Badge background
+
+  // Brown text on beige surfaces
+  textBrown: '#6B4423',        // Headings, labels, icons on beige/cream
+  textBrownMuted: '#A0826D',   // Secondary text on beige/cream
+
+  // Pixel-card chrome
+  pixelBorder: '#8B6F47',      // Chunky card/button border brown
+  cream: '#F5E6D3',            // Sheet/panel background
+  tanTrack: '#DEB887',         // Progress/hydration bar track
+  dividerTan: '#E8C9A0',       // Row dividers inside cards
+
+  // Semantic status
+  danger: '#D32F2F',           // Destructive actions (logout)
+  success: '#4CAF50',          // = hydrationHigh
+  warning: '#FFC107',          // = hydrationMedium
+
+  // Accents
+  wheat: '#F5DEB3',            // Light edge on tan option buttons
+  saddleBrown: '#8B4513',      // Dark edge / onboarding heading brown
+  mintSurface: '#E8F5E9',      // Sprite showcase background
 };
 
 export const Spacing = {

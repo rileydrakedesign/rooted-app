@@ -16,20 +16,20 @@ import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { Fonts, FontSizes } from '../constants/fonts';
 import { GardenCameraProvider, useGardenCamera } from '../contexts/GardenCameraContext';
 import { useGarden } from '../contexts/GardenContext';
+import { useFriends } from '../contexts/FriendsContext';
 import { InteractionType } from '../lib/garden';
-import { Plant } from '../components/garden/PlantTile';
+import { Plant } from '../types/garden';
 
-type Props = MainTabScreenProps<'Garden'> & {
-  onMenuPress?: () => void;
-};
+type Props = MainTabScreenProps<'Garden'>;
 
-function GardenContent({ navigation, onMenuPress }: Props) {
+function GardenContent({ navigation, route }: Props) {
   const [notificationCount] = useState(0);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
   // Get garden state
   const { plants, loading, updatePlantPosition, canPlaceAt, logInteraction } = useGarden();
+  const { getFriendById } = useFriends();
 
   // Measure the garden container so gesture (window) coords and the zoom
   // origin can be expressed in container-local space (see isoMath.ts contract)
@@ -46,21 +46,18 @@ function GardenContent({ navigation, onMenuPress }: Props) {
     });
   }, [setContainerFrame]);
 
-  // Handler functions
-  const handleMenuPress = () => {
-    if (onMenuPress) {
-      onMenuPress();
-    } else {
-      Alert.alert('Menu', 'Drawer will open here');
-    }
-  };
+  // Widget deep link (rooted://plant/<id>): open that plant's panel once the
+  // garden has loaded, then clear the param so back/reopen behaves normally.
+  const openPlantId = route.params?.openPlantId;
+  React.useEffect(() => {
+    if (!openPlantId || loading) return;
+    const plant = plants.find((p) => p.id === openPlantId);
+    if (plant) setSelectedPlant(plant);
+    navigation.setParams({ openPlantId: undefined });
+  }, [openPlantId, loading, plants, navigation]);
 
   const handleAddFriendPress = () => {
     navigation.navigate('AddFriend');
-  };
-
-  const handleSettingsPress = () => {
-    navigation.navigate('Settings');
   };
 
   // A native view snapshot of the container composites BOTH render layers —
@@ -119,9 +116,7 @@ function GardenContent({ navigation, onMenuPress }: Props) {
           <TopBar
             gardenName="My Garden"
             notificationCount={notificationCount}
-            onMenuPress={handleMenuPress}
             onAddFriendPress={handleAddFriendPress}
-            onSettingsPress={handleSettingsPress}
             onNotificationPress={handleNotificationPress}
             onSharePress={handleSharePress}
           />
@@ -176,7 +171,7 @@ function GardenContent({ navigation, onMenuPress }: Props) {
               <View style={styles.emptyState} pointerEvents="box-none">
                 <View style={styles.emptyStateCard}>
                   <Text style={styles.emptyStateText}>
-                    Your garden is empty — plant your first friend 🌱
+                    Your garden is empty — plant your first friend
                   </Text>
                   <PixelButton title="ADD A FRIEND" onPress={handleAddFriendPress} />
                 </View>
@@ -187,6 +182,7 @@ function GardenContent({ navigation, onMenuPress }: Props) {
           {/* Plant info panel */}
           <PlantInfoPanel
             plant={selectedPlant}
+            friend={selectedPlant ? getFriendById(selectedPlant.id) : null}
             visible={selectedPlant !== null}
             onClose={handleClosePanel}
             onLogInteraction={handleLogInteraction}

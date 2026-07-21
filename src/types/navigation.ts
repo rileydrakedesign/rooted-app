@@ -1,5 +1,6 @@
-import { NavigatorScreenParams } from '@react-navigation/native';
+import { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
 // Auth Stack - Onboarding Flow
 export type AuthStackParamList = {
@@ -19,28 +20,35 @@ export type AuthStackParamList = {
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
   NativeStackScreenProps<AuthStackParamList, T>;
 
-// Main Drawer Navigator (changed from Tab to Drawer)
-export type MainTabParamList = {
-  Garden: undefined;
+// Main area: a bottom-tab navigator (top-level destinations) nested in a
+// native stack (flow screens pushed above the tabs).
+export type MainTabsParamList = {
+  Garden: { openPlantId?: string } | undefined; // openPlantId: rooted://plant/<id> deep link
   Friends: undefined;
   Settings: undefined;
-  Help: undefined;
-  AddFriend: undefined;
-  ChoosePlant: { friendName: string };
-  Profile?: undefined; // Keep for backward compatibility
 };
 
-export type MainTabScreenProps<T extends keyof MainTabParamList> =
-  NativeStackScreenProps<MainTabParamList, T>;
+export type MainStackParamList = {
+  Tabs: NavigatorScreenParams<MainTabsParamList>;
+  AddFriend: undefined;
+  SetFrequency: { friendName: string };
+  ChoosePlant: { friendName: string; frequency: string };
+  Help: undefined;
+};
+
+// Tab screens can navigate to both tab siblings and parent-stack flow screens.
+export type MainTabScreenProps<T extends keyof MainTabsParamList> = CompositeScreenProps<
+  BottomTabScreenProps<MainTabsParamList, T>,
+  NativeStackScreenProps<MainStackParamList>
+>;
+
+export type MainStackScreenProps<T extends keyof MainStackParamList> =
+  NativeStackScreenProps<MainStackParamList, T>;
 
 // Root Stack
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<MainTabParamList>;
-  AddFriend: undefined;
-  EditFriend: { friendId: string };
-  PlantDetail: { plantId: string };
-  Settings: undefined;
+  Main: NavigatorScreenParams<MainStackParamList>;
 };
 
 export type RootStackScreenProps<T extends keyof RootStackParamList> =

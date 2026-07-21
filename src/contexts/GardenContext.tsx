@@ -23,7 +23,7 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { Plant } from '../components/garden/PlantTile';
+import { Plant } from '../types/garden';
 import { useFriends } from './FriendsContext';
 import { OccupancyMap, buildOccupancy } from '../utils/occupancy';
 import { TileCoord, Entity } from '../types/garden';
@@ -31,6 +31,7 @@ import { canPlaceEntity } from '../utils/placementRules';
 import { exampleMap } from '../data/exampleMap';
 import { logPlacement } from '../utils/debugLog';
 import { supabase } from '../lib/supabase';
+import { syncWidgetSnapshot } from '../lib/widgetSync';
 import { AppState } from 'react-native';
 import {
   fetchGarden,
@@ -97,7 +98,7 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [gardenPaused, setGardenPausedState] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const { setAllFriends, appendFriend, updateFriendHydration } = useFriends();
+  const { friends, setAllFriends, appendFriend, updateFriendHydration } = useFriends();
 
   // Freshest plants for async callers (addPlant runs after awaits, when the
   // closure's `plants` may be stale).
@@ -124,6 +125,7 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
         setGardenPausedState(false);
         setLoading(false);
         loadPromiseRef.current = null;
+        syncWidgetSnapshot([], [], false); // clear the home-screen widget too
         return;
       }
 
@@ -173,6 +175,14 @@ function GardenProviderInner({ children }: { children: ReactNode }) {
     });
     return () => sub.remove();
   }, [loadGardenForUser]);
+
+  // Mirror every settled garden state to the home-screen widget (App Group
+  // snapshot + timeline reload) — covers load, add, log, and pause changes.
+  useEffect(() => {
+    if (!loading && currentUserIdRef.current) {
+      syncWidgetSnapshot(plants, friends, gardenPaused);
+    }
+  }, [plants, friends, gardenPaused, loading]);
 
   // Occupancy is derived from the plants array — never mutated directly
   const occupancy = useMemo(

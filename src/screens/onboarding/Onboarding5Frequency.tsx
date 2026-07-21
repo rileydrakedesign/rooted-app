@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Fonts, FontSizes } from '../../constants/fonts';
-import { PixelButton, ProgressBar, BackButton } from '../../components';
+import { PixelButton, ProgressBar, BackButton, FrequencyPicker } from '../../components';
 
 type Props = AuthStackScreenProps<'Onboarding5Frequency'>;
 
 export default function Onboarding5Frequency({ navigation, route }: Props) {
   const { friendName } = route.params;
   const [selectedFrequency, setSelectedFrequency] = useState<string | null>(null);
-
-  const frequencies = ['DAILY', 'WEEKLY', 'BI-WEEKLY', 'CUSTOM'];
 
   const handleNext = () => {
     if (!selectedFrequency) return;
@@ -39,27 +37,7 @@ export default function Onboarding5Frequency({ navigation, route }: Props) {
         <Text style={styles.friendNameValue}>{friendName}</Text>
 
         {/* Frequency Options */}
-        <View style={styles.frequencyContainer}>
-          {frequencies.map((freq) => (
-            <TouchableOpacity
-              key={freq}
-              style={[
-                styles.frequencyButton,
-                selectedFrequency === freq && styles.frequencyButtonSelected,
-              ]}
-              onPress={() => setSelectedFrequency(freq)}
-            >
-              <Text
-                style={[
-                  styles.frequencyText,
-                  selectedFrequency === freq && styles.frequencyTextSelected,
-                ]}
-              >
-                {freq}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <FrequencyPicker selected={selectedFrequency} onSelect={setSelectedFrequency} />
       </View>
 
       {/* Next Button */}
@@ -117,46 +95,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 40,
-  },
-  frequencyContainer: {
-    gap: 15,
-  },
-  frequencyButton: {
-    backgroundColor: '#DEB887',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    borderWidth: 3,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 4,
-    borderBottomWidth: 4,
-    borderTopColor: '#F5DEB3',
-    borderLeftColor: '#F5DEB3',
-    borderRightColor: '#8B4513',
-    borderBottomColor: '#8B4513',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: -2, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 0,
-    elevation: 6,
-  },
-  frequencyButtonSelected: {
-    backgroundColor: '#B8916B',
-    borderTopColor: '#D4A574',
-    borderLeftColor: '#D4A574',
-    borderRightColor: '#8B6F47',
-    borderBottomColor: '#8B6F47',
-  },
-  frequencyText: {
-    fontSize: FontSizes.buttonMedium,
-    fontFamily: Fonts.pixel,
-    color: '#6B4423',
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-  frequencyTextSelected: {
-    color: '#FFF',
   },
 });

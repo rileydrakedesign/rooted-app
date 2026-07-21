@@ -19,6 +19,21 @@ export interface TileCoord {
 }
 
 /**
+ * Plant - a friend's plant as rendered in the garden.
+ *
+ * The client-side twin of a `plants` row (id === the friend's id).
+ */
+export interface Plant {
+  id: string;
+  friendName: string;
+  plantType: 'cactus' | 'sunflower' | 'fern' | 'rose' | 'succulent' | 'ivy' | 'monstera' | 'bamboo' | 'ficus';
+  stage: 1 | 2 | 3 | 4; // Growth stages
+  hydration: number; // 0-100
+  position: TileCoord; // Grid tile the plant stands on (the only position it stores)
+  image?: any; // Sprite asset (always resolved via plantCatalog for DB rows)
+}
+
+/**
  * TileMeta - Metadata for a single tile
  *
  * Defines the properties and capabilities of each tile in the map.

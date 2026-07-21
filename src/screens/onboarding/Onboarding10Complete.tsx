@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Fonts, FontSizes } from '../../constants/fonts';
 import { PixelButton, ProgressBar } from '../../components';
@@ -23,9 +23,13 @@ export default function Onboarding10Complete({ navigation }: Props) {
         {/* Celebration Title (already ALL CAPS) */}
         <Text style={styles.title}>SETUP COMPLETE!</Text>
 
-        {/* Greenhouse Visual */}
+        {/* Garden Visual */}
         <View style={styles.greenhouseContainer}>
-          <Text style={styles.greenhouse}>🏡</Text>
+          <Image
+            source={require('../../../assets/images/Logos/RootedLogo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.greenhouseText}>Your Garden</Text>
         </View>
 
@@ -89,8 +93,9 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#8B4513',
   },
-  greenhouse: {
-    fontSize: 100,
+  logo: {
+    width: 150,
+    height: 100,
   },
   greenhouseText: {
     fontSize: FontSizes.bodyMedium,

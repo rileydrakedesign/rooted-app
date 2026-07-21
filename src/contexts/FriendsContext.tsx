@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Plant, PLANT_EMOJIS } from '../components/garden/PlantTile';
+import { Plant } from '../types/garden';
 
 export interface Friend {
   id: string;
   friendName: string;
   plantType: Plant['plantType'];
-  plantEmoji: string;
   hydration: number;
   lastContact: string;
-  image?: any; // Plant image asset
+  lastContactAt?: string; // ISO timestamp behind lastContact (widget sync)
+  contactFrequency: string; // Display label, e.g. 'Weekly'
+  image?: any; // Plant sprite asset
 }
 
 interface FriendsContextType {

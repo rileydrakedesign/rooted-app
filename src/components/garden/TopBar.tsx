@@ -2,45 +2,38 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, ComponentSizes, Spacing } from '../../constants/theme';
 import { Fonts, FontSizes } from '../../constants/fonts';
+import PixelIcon from '../PixelIcon';
 
 interface TopBarProps {
   gardenName?: string;
   notificationCount?: number;
-  onMenuPress: () => void;
   onAddFriendPress: () => void;
-  onSettingsPress: () => void;
   onNotificationPress: () => void;
   onSharePress?: () => void;
 }
 
+/**
+ * Garden-contextual action bar. Top-level navigation lives in the bottom tab
+ * bar — this holds only actions that act on the garden itself.
+ */
 export default function TopBar({
   gardenName = 'My Garden',
   notificationCount = 0,
-  onMenuPress,
   onAddFriendPress,
-  onSettingsPress,
   onNotificationPress,
   onSharePress,
 }: TopBarProps) {
   return (
     <View style={styles.container}>
-      {/* Left: Menu + Share Buttons */}
+      {/* Left: Share */}
       <View style={styles.leftSection}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={onMenuPress}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.icon}>☰</Text>
-        </TouchableOpacity>
-
         {onSharePress && (
           <TouchableOpacity
             style={styles.iconButton}
             onPress={onSharePress}
             activeOpacity={0.7}
           >
-            <Text style={styles.icon}>📸</Text>
+            <PixelIcon name="camera" size={22} />
           </TouchableOpacity>
         )}
       </View>
@@ -58,16 +51,7 @@ export default function TopBar({
           onPress={onAddFriendPress}
           activeOpacity={0.7}
         >
-          <Text style={styles.icon}>+</Text>
-        </TouchableOpacity>
-
-        {/* Settings Button */}
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={onSettingsPress}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.icon}>⚙</Text>
+          <PixelIcon name="plus" size={18} />
         </TouchableOpacity>
 
         {/* Notification Button with Badge */}
@@ -76,7 +60,7 @@ export default function TopBar({
           onPress={onNotificationPress}
           activeOpacity={0.7}
         >
-          <Text style={styles.icon}>🔔</Text>
+          <PixelIcon name="bell" size={22} />
           {notificationCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{notificationCount}</Text>
@@ -138,8 +122,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   iconButton: {
-    width: ComponentSizes.iconMedium,
-    height: ComponentSizes.iconMedium,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 6,
@@ -149,14 +133,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.forestGreen,
   },
-  icon: {
-    fontSize: 20,
-    color: Colors.forestGreen,
-  },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: 2,
+    right: 2,
     backgroundColor: Colors.notificationOrange,
     borderRadius: 10,
     minWidth: 20,

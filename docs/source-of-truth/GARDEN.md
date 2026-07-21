@@ -88,8 +88,7 @@ given pixel always resolves to the same tile. It runs `canvasToWorld` then `scre
 | `TILE_WIDTH` / `TILE_HEIGHT` | 40 / 20 | Grid spacing, 2:1 diamond |
 | `TILE_RENDER_SIZE` | 60 | Legacy tile id 1 only |
 | `PLANT_SIZE` | 75 | Plant sprite box |
-| `PLANT_ANCHOR_OFFSET_Y_IMAGE` | `PLANT_SIZE` | PNG sprites are tightly cropped → visual base = box bottom |
-| `PLANT_ANCHOR_OFFSET_Y_EMOJI` | `PLANT_SIZE * 0.85` | Emoji glyphs carry internal bottom padding |
+| `PLANT_ANCHOR_OFFSET_Y_IMAGE` | `PLANT_SIZE` | PNG sprites are tightly cropped → visual base = box bottom. (The old `…_Y_EMOJI` variant was deleted with the emoji render fallback — every plant renders its sprite image.) |
 | `TILE_TOP_OFFSET_Y` | 0 | Plant base sits on the diamond center. Was `-45` for the retired floating-diamond art. |
 | `MIN_ZOOM` | 1.0 | You cannot zoom out past the home framing |
 
@@ -186,7 +185,9 @@ for the mapping invariants.
   Nothing writes decayed values back; the DB keeps the last true snapshot. No timer runs while
   the app is open, but the garden **refreshes silently on app foreground** (`AppState` listener
   in `GardenContext`), so backgrounded decay shows up without a manual reload.
-- **Watering (Batch 5 — the care loop's write path)**: tapping a plant opens `PlantInfoPanel`,
+- **Watering (Batch 5 — the care loop's write path)**: tapping a plant in the garden **or a
+  friend card in FriendsScreen** opens the same `PlantInfoPanel` (built on the shared
+  `BottomSheet`; takes both `plant` and the matching `friend` for last-contact / frequency),
   whose three log actions (Called +40 / Texted +20 / Hung out +30) call
   `GardenContext.logInteraction` → the `log_interaction` RPC. The RPC applies the weighting
   (single source of truth; `HYDRATION_WEIGHTS` in `garden.ts` only mirrors it for display),
@@ -194,7 +195,7 @@ for the mapping invariants.
   optimistically with the identical formula. `GardenScreen` must refresh its `selectedPlant`
   snapshot after logging or the panel's bar won't move.
 - **Wilt is visual only**: `hydration <= WILT_THRESHOLD` (30, exported from `garden.ts`) renders
-  the sprite at reduced opacity with a 💧 badge (`DraggablePlant`).
+  the sprite at reduced opacity with a `water` PixelIcon badge (`DraggablePlant`).
 - **Pause (vacation freeze)**: `users.is_paused` + `paused_at`. While paused, decay is computed
   only up to `paused_at`. The Settings "Pause Garden" toggle calls the `set_garden_paused` RPC —
   pause stamps `paused_at`; unpause shifts every plant's `last_hydration_update` forward by the
@@ -205,7 +206,7 @@ for the mapping invariants.
 
 ## Garden share (Batch 3)
 
-The 📸 button in `TopBar` captures the garden via **`react-native-view-shot`'s `captureRef`** on
+The camera button in `TopBar` captures the garden via **`react-native-view-shot`'s `captureRef`** on
 `gardenContainerRef` and hands the PNG to **`expo-sharing`**. It must stay a native view snapshot
 of the container — tiles render in Skia but plants are RN views layered on top, so a Skia
 `makeImageSnapshot` would capture the ground and none of the plants. Both packages are native
@@ -219,7 +220,8 @@ Worth knowing before you "fix" something that was never wired up:
 
 - `depthKey()` is **unused** — tiles paint in a naive `for j { for i }` order, and plant depth uses
   `zIndex: j * 10 + i`, which is a *different* ordering than the tile paint order.
-- `PlantTile.tsx` exports the `Plant` type and `PLANT_EMOJIS`, but its component is never rendered.
+- ~~`PlantTile.tsx`~~ **deleted** (UI/UX refactor) — the `Plant` type now lives in
+  `src/types/garden.ts`; `PLANT_EMOJIS` is gone (sprites only).
 - `getVisibleTileBounds`, `findNearestValidTile`, `getValidPlacementTiles` are unused.
 - `MapData` is declared twice — `types/garden.ts` (`ground`) and `exampleMap.ts` (legacy, `tiles`).
   `exampleMap` points both at the same array.

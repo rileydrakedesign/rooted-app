@@ -1,370 +1,199 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
-import { Plant } from './PlantTile';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Plant } from '../../types/garden';
+import { Friend } from '../../contexts/FriendsContext';
 import { InteractionType, HYDRATION_WEIGHTS } from '../../lib/garden';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { Colors, Spacing, BorderRadius } from '../../constants/theme';
+import { Fonts, FontSizes } from '../../constants/fonts';
+import BottomSheet from '../BottomSheet';
+import HydrationBar from '../HydrationBar';
+import PixelIcon, { PixelIconName } from '../PixelIcon';
 
 interface PlantInfoPanelProps {
   visible: boolean;
   plant: Plant | null;
+  /** Matching friend record (Friend.id === Plant.id) for contact details. */
+  friend?: Friend | null;
   onClose: () => void;
-  onCall?: () => void;
-  onText?: () => void;
   onLogInteraction?: (type: InteractionType) => void;
-  onEditFriend?: () => void;
 }
 
 // The care loop's three log actions; weights come from the shared
 // HYDRATION_WEIGHTS so the labels can never drift from the RPC
-const LOG_ACTIONS: { type: InteractionType; icon: string; label: string }[] = [
-  { type: 'call', icon: '📞', label: 'CALLED' },
-  { type: 'text', icon: '💬', label: 'TEXTED' },
-  { type: 'manual', icon: '🤝', label: 'HUNG OUT' },
+const LOG_ACTIONS: { type: InteractionType; icon: PixelIconName; label: string }[] = [
+  { type: 'call', icon: 'phone', label: 'CALLED' },
+  { type: 'text', icon: 'comment', label: 'TEXTED' },
+  { type: 'manual', icon: 'heart', label: 'HUNG OUT' },
 ];
 
+/**
+ * The single friend-care surface: opened by tapping a plant in the garden or
+ * a friend in the list — both paths land here and log through the same RPC.
+ */
 export default function PlantInfoPanel({
   visible,
   plant,
+  friend,
   onClose,
-  onCall,
-  onText,
   onLogInteraction,
-  onEditFriend,
 }: PlantInfoPanelProps) {
   if (!plant) return null;
 
-  // Calculate days until needs water based on hydration
-  const daysUntilWater = Math.ceil((plant.hydration / 100) * 7);
+  // Days of hydration left before empty at weekly-cadence decay — a display
+  // approximation, not the DB decay math
+  const daysUntilWater = Math.max(0, Math.ceil((plant.hydration / 100) * 7));
 
-  // Mock data for demo
-  const lastContact = '2 days ago';
-  const contactFrequency = 'Weekly';
-  const hasStreak = plant.hydration > 70;
-  const streakDays = 7;
-
-  // Determine hydration bar color
-  const getHydrationColor = (hydration: number) => {
-    if (hydration >= 60) return '#4CAF50'; // Green
-    if (hydration >= 20) return '#FFC107'; // Yellow
-    return '#F44336'; // Red
-  };
+  const stats: { icon: PixelIconName; text: string }[] = [
+    ...(friend
+      ? [{ icon: 'calendar' as PixelIconName, text: `Last Contact: ${friend.lastContact}` }]
+      : []),
+    { icon: 'water', text: `Needs Water In: ${daysUntilWater} days` },
+    ...(friend
+      ? [{ icon: 'phone' as PixelIconName, text: `Contact Frequency: ${friend.contactFrequency}` }]
+      : []),
+  ];
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        {/* Backdrop */}
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
+    <BottomSheet visible={visible} onClose={onClose}>
+      <View style={styles.content}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.spriteContainer}>
+            <Image source={plant.image} style={styles.sprite} resizeMode="contain" />
+          </View>
 
-        {/* Panel */}
-        <View style={styles.panel}>
-          {/* Swipe Handle */}
-          <View style={styles.handleBar} />
-
-          {/* Content */}
-          <View style={styles.content}>
-            {/* Header Section */}
-            <View style={styles.header}>
-              {/* Plant Sprite */}
-              <View style={styles.plantSpriteContainer}>
-                <Text style={styles.plantSprite}>🌵</Text>
-              </View>
-
-              {/* Friend Info */}
-              <View style={styles.friendInfo}>
-                <Text style={styles.friendName}>{plant.friendName.toUpperCase()}</Text>
-                <Text style={styles.plantDetails}>
-                  {plant.plantType.charAt(0).toUpperCase() + plant.plantType.slice(1)} • Stage {plant.stage}
-                </Text>
-                {hasStreak && (
-                  <Text style={styles.streakBadge}>⚡ {streakDays}-day streak!</Text>
-                )}
-              </View>
-            </View>
-
-            {/* Hydration Bar */}
-            <View style={styles.hydrationContainer}>
-              <View style={styles.hydrationBarBg}>
-                <View
-                  style={[
-                    styles.hydrationBarFill,
-                    {
-                      width: `${plant.hydration}%`,
-                      backgroundColor: getHydrationColor(plant.hydration),
-                    },
-                  ]}
-                >
-                  <Text style={styles.hydrationText}>{plant.hydration}%</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Info Stats */}
-            <View style={styles.statsContainer}>
-              <View style={styles.statRow}>
-                <Text style={styles.statIcon}>📅</Text>
-                <Text style={styles.statText}>Last Contact: {lastContact}</Text>
-              </View>
-              <View style={styles.statRow}>
-                <Text style={styles.statIcon}>🌱</Text>
-                <Text style={styles.statText}>Needs Water In: {daysUntilWater} days</Text>
-              </View>
-              <View style={styles.statRow}>
-                <Text style={styles.statIcon}>📞</Text>
-                <Text style={styles.statText}>Contact Frequency: {contactFrequency}</Text>
-              </View>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.actionsContainer}>
-              {/* Call and Text Buttons (Side by Side) */}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonHalf]}
-                  onPress={onCall}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonIcon}>📞</Text>
-                  <Text style={styles.buttonText}>CALL</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonHalf]}
-                  onPress={onText}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonIcon}>💬</Text>
-                  <Text style={styles.buttonText}>TEXT</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Typed log actions — the watering write path */}
-              <View style={styles.buttonRow}>
-                {LOG_ACTIONS.map((action) => (
-                  <TouchableOpacity
-                    key={action.type}
-                    style={[styles.button, styles.buttonHalf, styles.logButton]}
-                    onPress={() => onLogInteraction?.(action.type)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.buttonIcon}>{action.icon}</Text>
-                    <Text style={styles.logButtonText}>{action.label}</Text>
-                    <Text style={styles.logButtonHint}>+{HYDRATION_WEIGHTS[action.type]}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Edit Friend Button */}
-              <TouchableOpacity
-                style={[styles.button, styles.buttonFull]}
-                onPress={onEditFriend}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.buttonIcon}>⚙️</Text>
-                <Text style={styles.buttonText}>EDIT FRIEND</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.friendInfo}>
+            <Text style={styles.friendName}>{plant.friendName.toUpperCase()}</Text>
+            <Text style={styles.plantDetails}>
+              {plant.plantType.charAt(0).toUpperCase() + plant.plantType.slice(1)} • Stage {plant.stage}
+            </Text>
           </View>
         </View>
+
+        {/* Hydration Bar */}
+        <View style={styles.hydrationContainer}>
+          <HydrationBar hydration={plant.hydration} height={48} showLabel />
+        </View>
+
+        {/* Info Stats */}
+        <View style={styles.statsContainer}>
+          {stats.map((stat) => (
+            <View key={stat.text} style={styles.statRow}>
+              <PixelIcon name={stat.icon} size={20} color={Colors.textBrown} />
+              <Text style={styles.statText}>{stat.text}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Typed log actions — the watering write path */}
+        <View style={styles.buttonRow}>
+          {LOG_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.type}
+              style={styles.logButton}
+              onPress={() => onLogInteraction?.(action.type)}
+              activeOpacity={0.8}
+            >
+              <PixelIcon name={action.icon} size={20} color={Colors.white} />
+              <Text style={styles.logButtonText}>{action.label}</Text>
+              <Text style={styles.logButtonHint}>+{HYDRATION_WEIGHTS[action.type]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  panel: {
-    backgroundColor: '#F5E6D3',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 4,
-    borderBottomWidth: 0,
-    borderColor: '#8B6F47',
-    maxHeight: SCREEN_HEIGHT * 0.85,
-    paddingBottom: 40,
-  },
-  handleBar: {
-    width: 120,
-    height: 5,
-    backgroundColor: '#8B6F47',
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 20,
-    borderRadius: 3,
-  },
   content: {
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.large,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 24,
-    gap: 16,
+    marginBottom: Spacing.large,
+    gap: Spacing.medium,
   },
-  plantSpriteContainer: {
+  spriteContainer: {
     width: 120,
     height: 120,
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    borderWidth: 3,
+    backgroundColor: Colors.mintSurface,
+    borderRadius: BorderRadius.large,
+    borderColor: Colors.pixelBorder,
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderRightWidth: 4,
     borderBottomWidth: 4,
-    borderColor: '#8B6F47',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  plantSprite: {
-    fontSize: 64,
+  sprite: {
+    width: 88,
+    height: 88,
   },
   friendInfo: {
     flex: 1,
-    paddingTop: 8,
+    paddingTop: Spacing.small,
   },
   friendName: {
     fontSize: 24,
-    fontFamily: 'Rubik-Bold',
-    color: '#6B4423',
+    fontFamily: Fonts.heading,
+    color: Colors.textBrown,
     marginBottom: 4,
     letterSpacing: 0.5,
   },
   plantDetails: {
-    fontSize: 16,
-    fontFamily: 'Nunito-Bold',
-    color: '#A0826D',
-    marginBottom: 8,
-  },
-  streakBadge: {
-    fontSize: 16,
-    fontFamily: 'Nunito-Bold',
-    color: '#FF9800',
+    fontSize: FontSizes.bodySmall,
+    fontFamily: Fonts.subtext,
+    color: Colors.textBrownMuted,
   },
   hydrationContainer: {
-    marginBottom: 24,
-  },
-  hydrationBarBg: {
-    height: 48,
-    backgroundColor: '#DEB887',
-    borderRadius: 10,
-    borderWidth: 3,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 4,
-    borderBottomWidth: 4,
-    borderColor: '#8B6F47',
-    overflow: 'hidden',
-  },
-  hydrationBarFill: {
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 60,
-  },
-  hydrationText: {
-    fontSize: 18,
-    fontFamily: 'Nunito-Bold',
-    color: '#FFFFFF',
-    fontWeight: '700',
+    marginBottom: Spacing.large,
   },
   statsContainer: {
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: Spacing.large,
+    gap: Spacing.medium - 4,
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  statIcon: {
-    fontSize: 20,
-    width: 24,
+    gap: Spacing.medium - 4,
   },
   statText: {
-    fontSize: 16,
-    fontFamily: 'Nunito-Bold',
-    color: '#6B4423',
-  },
-  actionsContainer: {
-    gap: 12,
+    fontSize: FontSizes.bodySmall,
+    fontFamily: Fonts.subtext,
+    color: Colors.textBrown,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Spacing.medium - 4,
   },
-  button: {
-    flexDirection: 'row',
+  logButton: {
+    flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#B8916B',
-    paddingVertical: 16,
-    borderRadius: 10,
-    borderWidth: 3,
+    backgroundColor: Colors.buttonPrimary,
+    paddingVertical: Spacing.medium - 4,
+    paddingHorizontal: Spacing.tiny,
+    borderRadius: BorderRadius.medium,
+    borderColor: Colors.pixelBorder,
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderRightWidth: 4,
     borderBottomWidth: 4,
-    borderColor: '#8B6F47',
-    gap: 8,
-  },
-  buttonHalf: {
-    flex: 1,
-  },
-  buttonFull: {
-    width: '100%',
-  },
-  logButton: {
-    flexDirection: 'column',
     gap: 2,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
   },
   logButtonText: {
     fontSize: 13,
-    fontFamily: 'Nunito-Bold',
-    color: '#FFFFFF',
+    fontFamily: Fonts.subtext,
+    color: Colors.white,
     fontWeight: '700',
   },
   logButtonHint: {
     fontSize: 12,
-    fontFamily: 'Nunito-Bold',
-    color: '#F5E6D3',
-  },
-  buttonIcon: {
-    fontSize: 20,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontFamily: 'Nunito-Bold',
-    color: '#FFFFFF',
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: Fonts.subtext,
+    color: Colors.cream,
   },
 });

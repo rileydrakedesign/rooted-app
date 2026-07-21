@@ -39,8 +39,6 @@ export const PLANT_ANCHOR_OFFSET_X = PLANT_SIZE / 2; // Center horizontally
 // bottom edge) and taller than wide, so resizeMode="contain" in the square
 // container fills the full height: the sprite's visual base = container bottom.
 export const PLANT_ANCHOR_OFFSET_Y_IMAGE = PLANT_SIZE;
-// Emoji glyphs carry internal padding below the visual base; 0.85 is tuned for them.
-export const PLANT_ANCHOR_OFFSET_Y_EMOJI = PLANT_SIZE * 0.85;
 // Vertical offset (world px) from the tile's diamond center to where the
 // plant's bottom anchor sits. 0 = plant base exactly on the diamond center.
 // (Pixel tiles' walkable surface is centered on the tile base point; the old

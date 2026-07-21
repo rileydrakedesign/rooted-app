@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { Image, StyleSheet, Text } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -21,7 +21,9 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { Plant, PLANT_EMOJIS } from './PlantTile';
+import { Plant } from '../../types/garden';
+import PixelIcon from '../PixelIcon';
+import { Colors } from '../../constants/theme';
 import {
   worldToCanvas,
   hitTestTile,
@@ -29,7 +31,6 @@ import {
   PLANT_SIZE,
   PLANT_ANCHOR_OFFSET_X,
   PLANT_ANCHOR_OFFSET_Y_IMAGE,
-  PLANT_ANCHOR_OFFSET_Y_EMOJI,
 } from '../../utils/isoMath';
 import { useGardenCamera } from '../../contexts/GardenCameraContext';
 import { TileCoord } from '../../types/garden';
@@ -183,10 +184,8 @@ export default function DraggablePlant({
    * position and the shared-value camera. While dragging, the plant ghost
    * snaps to the hovered tile's center (per plant-drag.md).
    */
-  // Where the sprite's visual base sits inside the 75px container differs by
-  // render type: tightly-cropped image assets reach the container bottom,
-  // emoji glyphs have internal padding (see isoMath.ts)
-  const anchorOffsetY = plant.image ? PLANT_ANCHOR_OFFSET_Y_IMAGE : PLANT_ANCHOR_OFFSET_Y_EMOJI;
+  // Tightly-cropped sprite assets reach the container bottom (see isoMath.ts)
+  const anchorOffsetY = PLANT_ANCHOR_OFFSET_Y_IMAGE;
 
   const animatedStyle = useAnimatedStyle(() => {
     const ghost = isDragging.value && hoveredTile.value ? hoveredTile.value : null;
@@ -214,18 +213,20 @@ export default function DraggablePlant({
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.plantContainer, animatedStyle]}>
-        {plant.image ? (
-          <Image
-            source={plant.image}
-            style={[styles.plantImage, isWilted && styles.wilted]}
-            resizeMode="contain"
-          />
-        ) : (
-          <Text style={[styles.plantEmoji, isWilted && styles.wilted]}>
-            {PLANT_EMOJIS[plant.plantType]}
-          </Text>
+        <Image
+          source={plant.image}
+          style={[styles.plantImage, isWilted && styles.wilted]}
+          resizeMode="contain"
+        />
+        {isWilted && (
+          <View style={styles.wiltBadge}>
+            <PixelIcon
+              name="water"
+              size={Math.round(PLANT_SIZE * 0.25)}
+              color={Colors.hydrationLow}
+            />
+          </View>
         )}
-        {isWilted && <Text style={styles.wiltBadge}>💧</Text>}
       </Animated.View>
     </GestureDetector>
   );
@@ -252,10 +253,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  plantEmoji: {
-    fontSize: PLANT_SIZE * 0.8,
-    textAlign: 'center',
-  },
   wilted: {
     opacity: 0.55,
   },
@@ -263,6 +260,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    fontSize: PLANT_SIZE * 0.25,
   },
 });

@@ -9,7 +9,7 @@
  * paths (same constraint as TILE_IMAGES in exampleMap.ts).
  */
 
-import { Plant } from '../components/garden/PlantTile';
+import { Plant } from '../types/garden';
 
 export interface StarterPlant {
   name: string;

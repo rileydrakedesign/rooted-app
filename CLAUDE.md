@@ -105,8 +105,13 @@ Before building on top of anything, know this:
   drag and tap must both use it so a pixel always maps to the same tile.
 - **The camera lives on the UI thread only** (Reanimated SharedValues, no React mirror — by design).
   Mirroring it back with `runOnJS` reintroduces a mid-gesture drift race.
-- `MainNavigator` is a **stack**, not a drawer — `SimpleDrawer` is a custom overlay sibling. The
-  type is named `MainTabParamList` for historical reasons; it is neither tabs nor a drawer.
+- `MainNavigator` is a **native stack whose first screen is a bottom-tab navigator**
+  (Garden · Friends · Settings); flow screens (`AddFriend` → `SetFrequency` → `ChoosePlant`,
+  `Help`) push above the tabs. The old drawer (`SimpleDrawer`/`CustomDrawerContent`) is deleted —
+  never re-add a hamburger menu. Types: `MainTabsParamList` nested in `MainStackParamList`.
+- **Emoji are banned as UI.** Every icon renders through `src/components/PixelIcon.tsx`
+  (vendored HackerNoon Pixel Icon Library, CC BY 4.0 — attribution in HelpScreen/README stays).
+  Add icons via `scripts/gen-pixel-icons.js`, never inline emoji or one-off SVGs.
 
 ---
 
@@ -152,6 +157,8 @@ src/
 assets/images/plants/pixel/ plant sprites (static require only)
 assets/images/garden/tiles/ isometric terrain
 scripts/                    pixelize.py, seamless_tile.py, mockup_tile.py, scene_preview.py
+targets/widget/             WidgetKit home-screen widget (SwiftUI, NOT RN) — native change,
+                            edit → prebuild --clean + expo run:ios
 docs/source-of-truth/       ⭐ canonical docs — read before editing, update after
 docs/archive/               superseded notes — DO NOT TRUST, DO NOT UPDATE
 .claude/skills/             mockup-to-sprite, new-terrain-tile
@@ -196,6 +203,7 @@ Read the relevant doc **before** modifying a subsystem; update it **after**.
 | [`DESIGN-SYSTEM.md`](docs/source-of-truth/DESIGN-SYSTEM.md) | Color/spacing/type tokens, shared pixel components, the two art pipelines |
 
 Supporting (not canonical): [`docs/prd.md`](docs/prd.md) (product requirements),
+[`docs/BACKLOG.md`](docs/BACKLOG.md) (ideas + planned work — add to it, don't create new notes files),
 [`DEVELOPMENT.md`](DEVELOPMENT.md) (dev build setup), [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md).
 
 ---
@@ -210,7 +218,8 @@ Supporting (not canonical): [`docs/prd.md`](docs/prd.md) (product requirements),
 - **Verify in the simulator** — the garden is visual and gesture-driven. A typecheck pass is not
   evidence that a drag, zoom, or placement change works. Drive it.
 - **Prefer deleting dead code to extending it** — see the dead-code list in `GARDEN.md`
-  (`depthKey`, `PlantTile`, `getVisibleTileBounds`, the duplicate `MapData`, …).
+  (`depthKey`, `getVisibleTileBounds`, the duplicate `MapData`, …). `PlantTile` and the
+  emoji render path are already gone.
 
 ### Learned Anti-Patterns
 
@@ -222,3 +231,5 @@ Supporting (not canonical): [`docs/prd.md`](docs/prd.md) (product requirements),
   A missing image makes the tile silently vanish (`if (!tileImage) continue`).
 - **NEVER** treat the front-row placement block (`j >= map.height - 1`) or `MIN_ZOOM = 1.0` as bugs.
   Both are deliberate.
+- **NEVER** log design iterations or completed edits to `docs/BACKLOG.md` unprompted. Instead,
+  add backlog entries only when the user asks to record something; the backlog is theirs to curate.

@@ -103,7 +103,7 @@ rooted_app/
 │   │   ├── SignUpScreen.tsx
 │   │   ├── GardenScreen.tsx
 │   │   ├── FriendsScreen.tsx
-│   │   └── ProfileScreen.tsx
+│   │   └── SettingsScreen.tsx
 │   ├── navigation/                     # Navigation setup
 │   │   ├── AuthNavigator.tsx
 │   │   ├── MainNavigator.tsx
@@ -321,6 +321,7 @@ All rights reserved. This project is proprietary and not open source.
 - **Supabase** - Backend infrastructure
 - **Expo** - React Native development platform
 - **PixelLab AI** - Asset generation
+- **[HackerNoon Pixel Icon Library](https://pixeliconlibrary.com)** - UI icons, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ---
 

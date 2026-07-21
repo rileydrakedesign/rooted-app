@@ -1,5 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
+import { Colors, BorderRadius } from '../constants/theme';
+import PixelIcon from './PixelIcon';
 
 interface BackButtonProps {
   onPress: () => void;
@@ -8,7 +10,7 @@ interface BackButtonProps {
 export default function BackButton({ onPress }: BackButtonProps) {
   return (
     <TouchableOpacity style={styles.button} onPress={onPress} activeOpacity={0.7}>
-      <Text style={styles.arrow}>←</Text>
+      <PixelIcon name="arrow-left" size={22} color={Colors.white} />
     </TouchableOpacity>
   );
 }
@@ -19,18 +21,18 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#B8916B',
-    borderRadius: 10,
+    backgroundColor: Colors.buttonPrimary,
+    borderRadius: BorderRadius.medium,
     borderWidth: 3,
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderRightWidth: 4,
     borderBottomWidth: 4,
-    borderTopColor: '#D4A574',
-    borderLeftColor: '#D4A574',
-    borderRightColor: '#8B6F47',
-    borderBottomColor: '#8B6F47',
-    shadowColor: '#000',
+    borderTopColor: Colors.buttonPrimaryLight,
+    borderLeftColor: Colors.buttonPrimaryLight,
+    borderRightColor: Colors.buttonPrimaryDark,
+    borderBottomColor: Colors.buttonPrimaryDark,
+    shadowColor: Colors.black,
     shadowOffset: {
       width: -2,
       height: 2,
@@ -38,10 +40,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 0,
     elevation: 6,
-  },
-  arrow: {
-    fontSize: 24,
-    color: '#FFF',
-    fontWeight: 'bold',
   },
 });

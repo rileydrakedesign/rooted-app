@@ -2,7 +2,7 @@
  * Garden persistence service — the only place the app talks to the
  * `friends` and `plants` tables. All functions take and return
  * CLIENT-shaped objects (`Friend` from FriendsContext, `Plant` from
- * PlantTile); every DB↔client mapping (enums, stages, coordinates,
+ * types/garden); every DB↔client mapping (enums, stages, coordinates,
  * image re-derivation) lives here so the contexts stay dumb.
  *
  * Client/DB key invariant: the client keys both `Friend.id` and `Plant.id`
@@ -11,7 +11,7 @@
  */
 
 import { supabase } from './supabase';
-import { Plant, PLANT_EMOJIS } from '../components/garden/PlantTile';
+import { Plant } from '../types/garden';
 import { Friend } from '../contexts/FriendsContext';
 import { resolvePlantByType } from '../data/plantCatalog';
 import { TileCoord } from '../types/garden';
@@ -87,17 +87,26 @@ function decayRateForFrequency(frequency: ContactFrequency): number {
   }
 }
 
+// contact_frequency enum → display label (PlantInfoPanel, friend cards)
+const FREQUENCY_LABELS: Record<ContactFrequency, string> = {
+  weekly: 'Weekly',
+  biweekly: 'Bi-weekly',
+  monthly: 'Monthly',
+};
+
 function toClientFriend(row: FriendRow, hydration: number, lastContactIso?: string): Friend {
   const plantType = row.plant_type as Plant['plantType'];
   return {
     id: row.id,
     friendName: row.name,
     plantType,
-    plantEmoji: PLANT_EMOJIS[plantType] ?? '🪴',
     hydration,
     lastContact: lastContactIso
       ? new Date(lastContactIso).toLocaleDateString()
       : 'Just now',
+    lastContactAt: lastContactIso,
+    contactFrequency:
+      FREQUENCY_LABELS[row.contact_frequency as ContactFrequency] ?? 'Weekly',
     image: resolvePlantByType(plantType).image,
   };
 }

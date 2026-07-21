@@ -1,14 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { LinkingOptions, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { RootStackParamList } from '../types/navigation';
 
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 
 const Stack = createNativeStackNavigator();
+
+// Deep links (home-screen widget → app): rooted://plant/<id>,
+// rooted://friends, rooted://add-friend
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['rooted://'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Tabs: {
+            screens: {
+              Garden: 'plant/:openPlantId',
+              Friends: 'friends',
+            },
+          },
+          AddFriend: 'add-friend',
+        },
+      },
+    },
+  },
+};
 
 export default function RootNavigator() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,7 +64,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {session ? (
           <Stack.Screen name="Main" component={MainNavigator} />
