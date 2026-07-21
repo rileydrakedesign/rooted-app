@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Plant } from '../components/garden/PlantTile';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { Plant, PLANT_EMOJIS } from '../components/garden/PlantTile';
 
 export interface Friend {
   id: string;
@@ -13,58 +13,44 @@ export interface Friend {
 
 interface FriendsContextType {
   friends: Friend[];
-  addFriend: (name: string, plantType: Plant['plantType'], image: any) => Friend;
+  /** Replace the whole list — used by the auth-scoped garden load/clear. */
+  setAllFriends: (friends: Friend[]) => void;
+  /** Append one friend already persisted to the DB (client-shaped). */
+  appendFriend: (friend: Friend) => void;
   updateFriendHydration: (friendId: string, hydration: number) => void;
   getFriendById: (friendId: string) => Friend | undefined;
 }
 
 const FriendsContext = createContext<FriendsContextType | undefined>(undefined);
 
-// Emoji mapping for plant types
-const PLANT_EMOJIS: Record<Plant['plantType'], string> = {
-  cactus: '🌵',
-  sunflower: '🌻',
-  fern: '🌿',
-  rose: '🌹',
-  succulent: '🪴',
-  ivy: '🍃',
-  monstera: '🌱',
-  bamboo: '🎋',
-};
-
 export function FriendsProvider({ children }: { children: ReactNode }) {
   const [friends, setFriends] = useState<Friend[]>([]);
 
-  const addFriend = (name: string, plantType: Plant['plantType'], image: any): Friend => {
-    const newFriend: Friend = {
-      id: `friend-${Date.now()}`,
-      friendName: name,
-      plantType,
-      plantEmoji: PLANT_EMOJIS[plantType],
-      hydration: 100,
-      lastContact: 'Just now',
-      image,
-    };
+  const setAllFriends = useCallback((next: Friend[]) => {
+    setFriends(next);
+  }, []);
 
-    setFriends((prev) => [...prev, newFriend]);
-    return newFriend;
-  };
+  const appendFriend = useCallback((friend: Friend) => {
+    setFriends((prev) => [...prev.filter((f) => f.id !== friend.id), friend]);
+  }, []);
 
-  const updateFriendHydration = (friendId: string, hydration: number) => {
+  const updateFriendHydration = useCallback((friendId: string, hydration: number) => {
     setFriends((prev) =>
       prev.map((friend) =>
         friend.id === friendId ? { ...friend, hydration } : friend
       )
     );
-  };
+  }, []);
 
-  const getFriendById = (friendId: string): Friend | undefined => {
-    return friends.find((friend) => friend.id === friendId);
-  };
+  const getFriendById = useCallback(
+    (friendId: string): Friend | undefined =>
+      friends.find((friend) => friend.id === friendId),
+    [friends]
+  );
 
   return (
     <FriendsContext.Provider
-      value={{ friends, addFriend, updateFriendHydration, getFriendById }}
+      value={{ friends, setAllFriends, appendFriend, updateFriendHydration, getFriendById }}
     >
       {children}
     </FriendsContext.Provider>

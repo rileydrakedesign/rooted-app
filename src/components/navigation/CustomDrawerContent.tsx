@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 import { Fonts, FontSizes } from '../../constants/fonts';
+import { supabase } from '../../lib/supabase';
 
 interface CustomDrawerProps {
   navigation: any;
@@ -22,9 +23,11 @@ export default function CustomDrawerContent(props: CustomDrawerProps) {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement logout logic
-            Alert.alert('Logged Out', 'You have been logged out');
+          onPress: async () => {
+            // RootNavigator swaps to the auth stack and GardenContext clears
+            // on the SIGNED_OUT event; no navigation needed here.
+            const { error } = await supabase.auth.signOut();
+            if (error) Alert.alert('Logout Failed', error.message);
           },
         },
       ]

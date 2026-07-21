@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import { supabase } from '../lib/supabase';
-import { User } from '../types/database';
+import { Tables } from '../types/database';
+
+type User = Tables<'users'>;
 
 type Props = MainTabScreenProps<'Settings'>;
 

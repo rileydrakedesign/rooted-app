@@ -22,7 +22,10 @@ CREATE TYPE plant_type AS ENUM (
   'sunflower',
   'bonsai',
   'rose',
-  'herb'
+  'herb',
+  'monstera',  -- added: app starter catalog (migration add_plant_type_enum_values)
+  'bamboo',    -- added: client Plant union
+  'ficus'      -- added: app starter catalog
 );
 
 -- Plant evolution stages
@@ -77,6 +80,12 @@ CREATE TABLE public.users (
   -- Premium status
   is_premium BOOLEAN DEFAULT false,
   premium_expires_at TIMESTAMPTZ,
+
+  -- Vacation/pause freeze (migration garden_pause_and_death_cut): while
+  -- paused, client-side decay is computed only up to paused_at; unpausing
+  -- shifts plants.last_hydration_update forward by the pause duration.
+  is_paused BOOLEAN NOT NULL DEFAULT false,
+  paused_at TIMESTAMPTZ,
 
   -- Stats
   total_friends INTEGER DEFAULT 0,
@@ -139,8 +148,9 @@ CREATE TABLE public.plants (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   CONSTRAINT plants_hydration_range CHECK (current_hydration >= 0 AND current_hydration <= 100),
-  CONSTRAINT plants_grid_x_range CHECK (grid_position_x >= 0 AND grid_position_x <= 5),
-  CONSTRAINT plants_grid_y_range CHECK (grid_position_y >= 0 AND grid_position_y <= 5),
+  -- 0..9 matches the app's 10x10 exampleMap (migration widen_plants_grid_checks)
+  CONSTRAINT plants_grid_x_range CHECK (grid_position_x >= 0 AND grid_position_x <= 9),
+  CONSTRAINT plants_grid_y_range CHECK (grid_position_y >= 0 AND grid_position_y <= 9),
   CONSTRAINT plants_streak_count_check CHECK (streak_count >= 0),
   CONSTRAINT plants_total_interactions_check CHECK (total_interactions >= 0),
   CONSTRAINT plants_total_xp_check CHECK (total_xp >= 0)
@@ -570,6 +580,43 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ----------------------------------------------------------------------------
+-- PRODUCT DECISION (ratified 2026-07-20): plant DEATH is CUT — wilt only.
+-- is_dead, death_timestamp, revive_logs, and update_plant_hydration's death
+-- check are legacy; do not build on them. Decay is computed CLIENT-side from
+-- last_hydration_update + decay_rate_per_day (src/lib/garden.ts) and frozen
+-- while users.is_paused.
+-- ----------------------------------------------------------------------------
+
+-- ----------------------------------------------------------------------------
+-- Function: Pause/unpause the garden (vacation freeze)
+-- SECURITY INVOKER — RLS scopes all updates to auth.uid().
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.set_garden_paused(p_paused BOOLEAN)
+RETURNS void AS $$
+DECLARE
+  v_paused_at TIMESTAMPTZ;
+BEGIN
+  SELECT paused_at INTO v_paused_at FROM public.users WHERE id = auth.uid();
+
+  IF p_paused THEN
+    UPDATE public.users
+    SET is_paused = true, paused_at = now()
+    WHERE id = auth.uid() AND NOT is_paused;
+  ELSE
+    IF v_paused_at IS NOT NULL THEN
+      UPDATE public.plants p
+      SET last_hydration_update = p.last_hydration_update + (now() - v_paused_at)
+      FROM public.friends f
+      WHERE f.id = p.friend_id AND f.user_id = auth.uid();
+    END IF;
+    UPDATE public.users
+    SET is_paused = false, paused_at = NULL
+    WHERE id = auth.uid();
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
+-- ----------------------------------------------------------------------------
 -- Function: Calculate decay rate based on contact frequency
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION calculate_decay_rate(
@@ -634,6 +681,32 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER set_plant_decay_rate_on_insert BEFORE INSERT ON public.plants
   FOR EACH ROW EXECUTE FUNCTION set_plant_decay_rate();
+
+-- Create public.users row for every new auth.users signup
+-- (migration handle_new_user_trigger; also backfilled pre-existing auth users).
+-- SECURITY DEFINER bypasses RLS for the trigger path, so public.users needs
+-- no INSERT policy.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, email, phone_number, display_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'phone_number',
+    NEW.raw_user_meta_data->>'full_name'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Update decay rate when friend's contact frequency changes
 CREATE OR REPLACE FUNCTION update_plant_decay_rate_on_frequency_change()

@@ -1,64 +1,41 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import { Fonts, FontSizes } from '../constants/fonts';
 import { PixelButton, ProgressBar, BackButton } from '../components';
 import { useGarden } from '../contexts/GardenContext';
-import { Plant } from '../components/garden/PlantTile';
+import { STARTER_PLANTS } from '../data/plantCatalog';
 
 type Props = MainTabScreenProps<'ChoosePlant'>;
-
-const PLANT_TYPES = [
-  {
-    name: 'Cactus',
-    image: require('../../assets/images/plants/cactus-plant.png'),
-    description: 'Desert • Low Maintenance'
-  },
-  {
-    name: 'Sunflower',
-    image: require('../../assets/images/plants/sunflower-plant.png'),
-    description: 'Sunny • Cheerful'
-  },
-  {
-    name: 'Monstera',
-    image: require('../../assets/images/plants/monstera-plant.png'),
-    description: 'Tropical • Lush'
-  },
-  {
-    name: 'Ficus',
-    image: require('../../assets/images/plants/ficus-plant.png'),
-    description: 'Classic • Elegant'
-  },
-];
 
 export default function ChoosePlantScreen({ navigation, route }: Props) {
   const { friendName } = route.params;
   const { addPlant } = useGarden();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [saving, setSaving] = useState(false);
 
-  const currentPlant = PLANT_TYPES[currentIndex];
+  const currentPlant = STARTER_PLANTS[currentIndex];
 
   const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : PLANT_TYPES.length - 1));
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : STARTER_PLANTS.length - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev < PLANT_TYPES.length - 1 ? prev + 1 : 0));
+    setCurrentIndex((prev) => (prev < STARTER_PLANTS.length - 1 ? prev + 1 : 0));
   };
 
-  const handleSelect = () => {
-    // Create plant for friend - map to correct plant type
-    const plantTypeMap: Record<string, Plant['plantType']> = {
-      'Cactus': 'cactus',
-      'Sunflower': 'sunflower',
-      'Monstera': 'monstera',
-      'Ficus': 'fern', // Using fern as closest match
-    };
-
-    const plantType = plantTypeMap[currentPlant.name] || 'cactus';
-    addPlant(friendName, plantType, currentPlant.image);
-    // Navigate back to Garden
-    navigation.navigate('Garden');
+  const handleSelect = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await addPlant(friendName, currentPlant.plantType, currentPlant.image);
+      // Navigate back to Garden
+      navigation.navigate('Garden');
+    } catch (error: any) {
+      Alert.alert('Could Not Add Friend', error?.message ?? 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -102,14 +79,15 @@ export default function ChoosePlantScreen({ navigation, route }: Props) {
 
         {/* Plant Counter */}
         <Text style={styles.counter}>
-          {currentIndex + 1} / {PLANT_TYPES.length}
+          {currentIndex + 1} / {STARTER_PLANTS.length}
         </Text>
       </View>
 
       {/* Select Button */}
       <PixelButton
-        title="SELECT PLANT"
+        title={saving ? 'Planting...' : 'SELECT PLANT'}
         onPress={handleSelect}
+        disabled={saving}
       />
     </View>
   );

@@ -10,6 +10,7 @@ interface TopBarProps {
   onAddFriendPress: () => void;
   onSettingsPress: () => void;
   onNotificationPress: () => void;
+  onSharePress?: () => void;
 }
 
 export default function TopBar({
@@ -19,10 +20,11 @@ export default function TopBar({
   onAddFriendPress,
   onSettingsPress,
   onNotificationPress,
+  onSharePress,
 }: TopBarProps) {
   return (
     <View style={styles.container}>
-      {/* Left: Menu Button */}
+      {/* Left: Menu + Share Buttons */}
       <View style={styles.leftSection}>
         <TouchableOpacity
           style={styles.iconButton}
@@ -31,6 +33,16 @@ export default function TopBar({
         >
           <Text style={styles.icon}>☰</Text>
         </TouchableOpacity>
+
+        {onSharePress && (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={onSharePress}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.icon}>📸</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Center: Garden Title (absolutely positioned) */}
@@ -100,6 +112,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: Spacing.small,
   },
   centerSection: {
     position: 'absolute',

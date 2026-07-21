@@ -3,40 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Fonts, FontSizes } from '../../constants/fonts';
 import { PixelButton, ProgressBar, BackButton } from '../../components';
+import { STARTER_PLANTS } from '../../data/plantCatalog';
 
 type Props = AuthStackScreenProps<'Onboarding6ChoosePlant'>;
-
-const PLANT_TYPES = [
-  {
-    name: 'Cactus',
-    image: require('../../../assets/images/plants/cactus-plant.png')
-  },
-  {
-    name: 'Sunflower',
-    image: require('../../../assets/images/plants/sunflower-plant.png')
-  },
-  {
-    name: 'Monstera',
-    image: require('../../../assets/images/plants/monstera-plant.png')
-  },
-  {
-    name: 'Ficus',
-    image: require('../../../assets/images/plants/ficus-plant.png')
-  },
-];
 
 export default function Onboarding6ChoosePlant({ navigation, route }: Props) {
   const { friendName, frequency } = route.params;
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const currentPlant = PLANT_TYPES[currentIndex];
+  const currentPlant = STARTER_PLANTS[currentIndex];
 
   const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : PLANT_TYPES.length - 1));
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : STARTER_PLANTS.length - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev < PLANT_TYPES.length - 1 ? prev + 1 : 0));
+    setCurrentIndex((prev) => (prev < STARTER_PLANTS.length - 1 ? prev + 1 : 0));
   };
 
   const handleSelect = () => {
@@ -85,7 +67,7 @@ export default function Onboarding6ChoosePlant({ navigation, route }: Props) {
 
         {/* Plant Counter */}
         <Text style={styles.counter}>
-          {currentIndex + 1} / {PLANT_TYPES.length}
+          {currentIndex + 1} / {STARTER_PLANTS.length}
         </Text>
       </View>
 

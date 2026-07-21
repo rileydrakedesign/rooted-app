@@ -13,11 +13,14 @@ import { AuthStackScreenProps } from '../../types/navigation';
 import { supabase } from '../../lib/supabase';
 import { Fonts, FontSizes } from '../../constants/fonts';
 import { PixelButton, PixelInput, ProgressBar, BackButton } from '../../components';
+import { useGarden } from '../../contexts/GardenContext';
+import { resolvePlantByName } from '../../data/plantCatalog';
 
 type Props = AuthStackScreenProps<'Onboarding9CreateAccount'>;
 
 export default function Onboarding9CreateAccount({ navigation, route }: Props) {
   const { friendName, frequency, plantType } = route.params;
+  const { addPlant } = useGarden();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -52,8 +55,19 @@ export default function Onboarding9CreateAccount({ navigation, route }: Props) {
 
       if (error) throw error;
 
-      // Store the first friend data temporarily (would be saved to database in real implementation)
-      // For now, just navigate to completion
+      // Seed the first friend collected during onboarding into the garden —
+      // persisted to the DB via addPlant. Requires an active session so the
+      // insert passes auth.uid() RLS; signUp only returns one when email
+      // confirmation is disabled in the Supabase project (dev setting).
+      if (data.session) {
+        const starter = resolvePlantByName(plantType);
+        await addPlant(friendName, starter.plantType, starter.image, frequency);
+      } else {
+        console.warn(
+          '[ONBOARDING] signUp returned no session (email confirmation on?) — first friend not seeded'
+        );
+      }
+
       navigation.navigate('Onboarding10Complete');
     } catch (error: any) {
       Alert.alert('Sign Up Failed', error.message);

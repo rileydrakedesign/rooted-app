@@ -10,15 +10,22 @@ import {
 } from 'react-native';
 import { MainTabScreenProps } from '../types/navigation';
 import { Colors } from '../constants/theme';
+import { supabase } from '../lib/supabase';
+import { useGarden } from '../contexts/GardenContext';
 
 type Props = MainTabScreenProps<'Settings'>;
 
 export default function SettingsScreen({ navigation }: Props) {
+  const { gardenPaused, setGardenPaused } = useGarden();
+  const [pauseSaving, setPauseSaving] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [streakCelebrations, setStreakCelebrations] = useState(true);
   const [dailyReminderTime, setDailyReminderTime] = useState('8:00 AM');
   const [gardenTheme, setGardenTheme] = useState('Cozy Greenhouse');
-  const [friendLimit] = useState({ current: 12, max: 20 });
+  // Display-only placeholder — nothing enforces this cap yet (enforcement
+  // lands with real persistence). Framed as "close friends" (intimacy),
+  // not scarcity.
+  const [friendLimit] = useState({ current: 12, max: 30 });
   const userEmail = 'rileydrake@email.com';
 
   const handleBack = () => {
@@ -41,6 +48,18 @@ export default function SettingsScreen({ navigation }: Props) {
     Alert.alert('Garden Theme', 'Theme selector coming soon');
   };
 
+  const handlePauseToggle = async () => {
+    if (pauseSaving) return;
+    setPauseSaving(true);
+    try {
+      await setGardenPaused(!gardenPaused);
+    } catch (error: any) {
+      Alert.alert('Could Not Update', error?.message ?? 'Please try again.');
+    } finally {
+      setPauseSaving(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -50,8 +69,11 @@ export default function SettingsScreen({ navigation }: Props) {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert('Logged Out', 'You have been logged out');
+          onPress: async () => {
+            // RootNavigator swaps to the auth stack and GardenContext clears
+            // on the SIGNED_OUT event; no navigation needed here.
+            const { error } = await supabase.auth.signOut();
+            if (error) Alert.alert('Logout Failed', error.message);
           },
         },
       ]
@@ -168,11 +190,35 @@ export default function SettingsScreen({ navigation }: Props) {
 
               <View style={styles.rowDivider} />
 
+              {/* Pause Garden (vacation freeze) */}
+              <TouchableOpacity
+                style={styles.row}
+                onPress={handlePauseToggle}
+                activeOpacity={0.7}
+                disabled={pauseSaving}
+              >
+                <Text style={styles.icon}>🏖️</Text>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowLabel}>Pause Garden</Text>
+                  <Text style={styles.rowSubtext}>
+                    {gardenPaused
+                      ? 'Plants are frozen — no thirst while you are away'
+                      : 'Freeze thirst while on vacation'}
+                  </Text>
+                </View>
+                <Text style={styles.toggle}>
+                  {pauseSaving ? '…' : `[${gardenPaused ? 'ON' : 'OFF'}]`}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.rowDivider} />
+
               {/* Friend Limit */}
               <View style={styles.row}>
                 <Text style={styles.icon}>📏</Text>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowLabel}>Friend Limit</Text>
+                  <Text style={styles.rowLabel}>Close Friends</Text>
+                  <Text style={styles.rowSubtext}>Room in your garden</Text>
                 </View>
                 <Text style={styles.limitValue}>{friendLimit.current}/{friendLimit.max}</Text>
               </View>

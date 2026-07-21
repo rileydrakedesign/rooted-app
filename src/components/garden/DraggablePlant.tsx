@@ -1,5 +1,19 @@
-import React, { useEffect } from 'react';
-import { Image, StyleSheet, Dimensions, Text } from 'react-native';
+/**
+ * DraggablePlant Component
+ *
+ * PRINCIPLE: Separation of concerns
+ * - Plant position = Grid coordinates only (i, j, k)
+ * - Rendering = Pure worklet (grid → canvas from the shared-value camera),
+ *   so plants can never drift from their tiles during pan/zoom
+ * - Drag = Track hovered tile on the UI thread; commit grid position on drop
+ *
+ * The hovered tile is computed in the gesture worklet via the app-wide
+ * isoMath.hitTestTile; JS is only involved when the hovered tile CHANGES
+ * (validation + DragState for the highlight) and on drop (commit).
+ */
+
+import React from 'react';
+import { Image, StyleSheet, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -8,121 +22,99 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Plant, PLANT_EMOJIS } from './PlantTile';
-import { GridPosition, isValidPosition } from '../../utils/isoMath';
-
-// TODO: Integrate with new tile-based grid system
-// These functions need to be reimplemented for the new tile renderer
-const gridCellToScreen = (gridX: number, gridY: number) => ({ x: 0, y: 0 }); // Placeholder
-const screenToCellCenter = (screenX: number, screenY: number) => ({ x: 0, y: 0 }); // Placeholder
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-/**
- * Plant Visual Constants
- * TODO: Update to work with new tile-based grid system
- */
-const IMAGE_SCALE = SCREEN_WIDTH / 1000; // Match source image dimensions
-
-// Plant sprite dimensions (base size in source image pixels)
-const PLANT_BASE_SIZE = 200; // Base size for plant sprite (80 * 2.5)
-const PLANT_SIZE = PLANT_BASE_SIZE * IMAGE_SCALE;
-
-// Anchor point configuration
-// Plants anchor at bottom-center to appear sitting on the ground
-const PLANT_ANCHOR_OFFSET_X = PLANT_SIZE / 2; // Center horizontally
-const PLANT_ANCHOR_OFFSET_Y = PLANT_SIZE * 0.75; // Anchor at 75% down (bottom)
-
-// Visual center offset (for placement calculations)
-// This is where users perceive the plant to be during drag
-const VISUAL_CENTER_OFFSET_X = PLANT_SIZE / 2; // Middle of sprite
-const VISUAL_CENTER_OFFSET_Y = PLANT_SIZE / 2; // Middle of sprite
+import {
+  worldToCanvas,
+  hitTestTile,
+  plantAnchorWorld,
+  PLANT_SIZE,
+  PLANT_ANCHOR_OFFSET_X,
+  PLANT_ANCHOR_OFFSET_Y_IMAGE,
+  PLANT_ANCHOR_OFFSET_Y_EMOJI,
+} from '../../utils/isoMath';
+import { useGardenCamera } from '../../contexts/GardenCameraContext';
+import { TileCoord } from '../../types/garden';
+import { DragState } from './TileMap';
+import { exampleMap } from '../../data/exampleMap';
+import { WILT_THRESHOLD } from '../../lib/garden';
 
 interface DraggablePlantProps {
   plant: Plant;
-  onPositionChange: (plantId: string, newPosition: GridPosition) => void;
-  isPositionOccupied: (position: GridPosition, excludePlantId: string) => boolean;
+  onPositionChange: (plantId: string, newTile: TileCoord) => void;
+  onDragStateChange?: (dragState: DragState | null) => void;
+  canPlaceAt: (tile: TileCoord, plantId: string) => { ok: boolean; reason?: string };
   onTap?: (plant: Plant) => void;
 }
 
 export default function DraggablePlant({
   plant,
   onPositionChange,
-  isPositionOccupied,
+  onDragStateChange,
+  canPlaceAt,
   onTap,
 }: DraggablePlantProps) {
-  // Shared values for animation
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
+  const { cameraX, cameraY, scale, containerFrame } = useGardenCamera();
+
+  // Zoom origin = measured container center; offset converts window → canvas
+  // coords (see isoMath.ts frame contract)
+  const originX = containerFrame.width / 2;
+  const originY = containerFrame.height / 2;
+  const offsetX = containerFrame.offsetX;
+  const offsetY = containerFrame.offsetY;
+
   const isDragging = useSharedValue(false);
-
-  // Store starting position for drag calculations
-  const dragStartX = useSharedValue(0);
-  const dragStartY = useSharedValue(0);
-
-  // Sync visual position with grid position whenever plant.position changes
-  useEffect(() => {
-    const cellCenter = gridCellToScreen(plant.position.x, plant.position.y);
-    translateX.value = cellCenter.x - PLANT_ANCHOR_OFFSET_X;
-    translateY.value = cellCenter.y - PLANT_ANCHOR_OFFSET_Y;
-  }, [plant.position.x, plant.position.y]);
+  const hoveredTile = useSharedValue<TileCoord | null>(null);
+  const dragScale = useSharedValue(1); // springy "lifted" pop while dragging
 
   /**
-   * Handle drag end - snap to nearest valid cell center
-   *
-   * First Principles Approach:
-   * 1. Calculate where user sees the plant (visual center)
-   * 2. Find nearest cell center to that visual position
-   * 3. Validate the target position (not occupied, not front row)
-   * 4. Snap plant's anchor point to target cell center (or back to original)
+   * Report drag state to parent (JS thread — runs validation for the highlight)
    */
-  const handleDragEnd = (draggedTranslateX: number, draggedTranslateY: number) => {
-    // Calculate visual center position (where user perceives the plant to be)
-    const visualCenterX = draggedTranslateX + VISUAL_CENTER_OFFSET_X;
-    const visualCenterY = draggedTranslateY + VISUAL_CENTER_OFFSET_Y;
+  const reportDragState = (tile: TileCoord | null, fingerX: number, fingerY: number) => {
+    if (!onDragStateChange) return;
 
-    console.log('🔍 Drag End Debug:', {
-      plantId: plant.id,
-      draggedTranslate: { x: draggedTranslateX, y: draggedTranslateY },
-      visualCenter: { x: visualCenterX, y: visualCenterY },
-      PLANT_SIZE,
-      VISUAL_CENTER_OFFSET_X,
-      VISUAL_CENTER_OFFSET_Y,
-    });
+    const startTile: TileCoord = plant.position;
 
-    // Find nearest cell center to the visual position
-    const targetGridPos = screenToCellCenter(visualCenterX, visualCenterY);
-
-    console.log('🎯 Target Grid:', targetGridPos);
-
-    // Get the target cell center coordinates
-    const targetCellCenter = gridCellToScreen(targetGridPos.x, targetGridPos.y);
-
-    console.log('📍 Target Cell Center:', targetCellCenter);
-
-    // Validate placement
-    const withinBounds = isValidPosition(targetGridPos); // Check grid boundaries (0-9 for x and y)
-    const occupied = isPositionOccupied(targetGridPos, plant.id);
-    const isFrontRow = targetGridPos.y >= 9; // Restrict front row placement
-
-    console.log('✅ Validation:', { withinBounds, occupied, isFrontRow });
-
-    if (withinBounds && !occupied && !isFrontRow) {
-      // Valid position - snap anchor point to target cell center
-      translateX.value = withSpring(targetCellCenter.x - PLANT_ANCHOR_OFFSET_X);
-      translateY.value = withSpring(targetCellCenter.y - PLANT_ANCHOR_OFFSET_Y);
-      onPositionChange(plant.id, targetGridPos);
-    } else {
-      // Invalid position - snap back to current grid position
-      const currentCellCenter = gridCellToScreen(plant.position.x, plant.position.y);
-      translateX.value = withSpring(currentCellCenter.x - PLANT_ANCHOR_OFFSET_X);
-      translateY.value = withSpring(currentCellCenter.y - PLANT_ANCHOR_OFFSET_Y);
+    if (!tile) {
+      // Finger is outside the map — no hover highlight; dropping here snaps back
+      onDragStateChange({
+        entityId: plant.id,
+        startTile,
+        currentScreen: { x: fingerX, y: fingerY },
+        hoveredTile: undefined,
+        valid: false,
+      });
+      return;
     }
 
-    isDragging.value = false;
+    const validation = canPlaceAt(tile, plant.id);
+    onDragStateChange({
+      entityId: plant.id,
+      startTile,
+      currentScreen: { x: fingerX, y: fingerY },
+      hoveredTile: tile,
+      valid: validation.ok,
+    });
   };
 
   /**
-   * Tap gesture - show plant info
+   * Handle drag end (JS thread) — final validation and grid-position commit.
+   * No visual work here: the animated style falls back to plant.position the
+   * moment isDragging is false, and moves to the new tile when state commits.
+   */
+  const handleDragEnd = (tile: TileCoord | null) => {
+    if (onDragStateChange) {
+      onDragStateChange(null);
+    }
+
+    if (tile) {
+      const validation = canPlaceAt(tile, plant.id);
+      if (validation.ok) {
+        onPositionChange(plant.id, tile);
+      }
+    }
+  };
+
+  /**
+   * Tap gesture
    */
   const tapGesture = Gesture.Tap()
     .onEnd(() => {
@@ -132,60 +124,108 @@ export default function DraggablePlant({
     });
 
   /**
-   * Pan gesture - drag plant
+   * Pan gesture — hovered tile computed on the UI thread; JS notified only
+   * when the hovered tile changes.
    */
   const panGesture = Gesture.Pan()
-    .onStart(() => {
+    .onStart((event) => {
+      'worklet';
       isDragging.value = true;
-      // Store starting position in shared values
-      dragStartX.value = translateX.value;
-      dragStartY.value = translateY.value;
+      dragScale.value = withSpring(1.15);
+
+      // absoluteX/Y are window coords; subtract the container offset to get
+      // container-local canvas coords (event.x/y would be plant-local!)
+      const fx = event.absoluteX - offsetX;
+      const fy = event.absoluteY - offsetY;
+      const tile = hitTestTile(
+        fx, fy,
+        scale.value, originX, originY,
+        cameraX.value, cameraY.value,
+        exampleMap.width, exampleMap.height
+      );
+      hoveredTile.value = tile;
+      runOnJS(reportDragState)(tile, fx, fy);
     })
     .onUpdate((event) => {
-      // Update position relative to starting position
-      translateX.value = dragStartX.value + event.translationX;
-      translateY.value = dragStartY.value + event.translationY;
+      'worklet';
+      const fx = event.absoluteX - offsetX;
+      const fy = event.absoluteY - offsetY;
+      const tile = hitTestTile(
+        fx, fy,
+        scale.value, originX, originY,
+        cameraX.value, cameraY.value,
+        exampleMap.width, exampleMap.height
+      );
+
+      const prev = hoveredTile.value;
+      const changed = tile
+        ? (!prev || prev.i !== tile.i || prev.j !== tile.j)
+        : prev !== null;
+
+      if (changed) {
+        hoveredTile.value = tile;
+        runOnJS(reportDragState)(tile, fx, fy);
+      }
     })
-    .onEnd((event) => {
-      // Calculate final translateX/translateY values (top-left corner of plant sprite)
-      const finalTranslateX = dragStartX.value + event.translationX;
-      const finalTranslateY = dragStartY.value + event.translationY;
-      runOnJS(handleDragEnd)(finalTranslateX, finalTranslateY);
+    .onEnd(() => {
+      'worklet';
+      const tile = hoveredTile.value;
+      isDragging.value = false;
+      hoveredTile.value = null;
+      dragScale.value = withSpring(1);
+      runOnJS(handleDragEnd)(tile);
     });
 
-  // Exclusive gesture: tap or pan, not both
   const composedGesture = Gesture.Exclusive(panGesture, tapGesture);
 
   /**
-   * Animated style with:
-   * - Position based on cell center
-   * - Isometric layering (Z-index based on grid row)
-   * - Scale feedback during drag
+   * Position + scale computed ENTIRELY on the UI thread from the grid
+   * position and the shared-value camera. While dragging, the plant ghost
+   * snaps to the hovered tile's center (per plant-drag.md).
    */
+  // Where the sprite's visual base sits inside the 75px container differs by
+  // render type: tightly-cropped image assets reach the container bottom,
+  // emoji glyphs have internal padding (see isoMath.ts)
+  const anchorOffsetY = plant.image ? PLANT_ANCHOR_OFFSET_Y_IMAGE : PLANT_ANCHOR_OFFSET_Y_EMOJI;
+
   const animatedStyle = useAnimatedStyle(() => {
-    // Calculate Z-index for isometric layering
-    // Back rows (low Y) render behind front rows (high Y)
-    const baseZIndex = (plant.position.y * 10) + plant.position.x;
-    const zIndex = isDragging.value ? 1000 : baseZIndex;
+    const ghost = isDragging.value && hoveredTile.value ? hoveredTile.value : null;
+    const gridI = ghost ? ghost.i : plant.position.i;
+    const gridJ = ghost ? ghost.j : plant.position.j;
+
+    const anchorWorld = plantAnchorWorld(gridI, gridJ, cameraX.value, cameraY.value);
+    const anchorCanvas = worldToCanvas(anchorWorld.x, anchorWorld.y, scale.value, originX, originY);
+
+    const baseZIndex = (plant.position.j * 10) + plant.position.i;
 
     return {
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { scale: withSpring(isDragging.value ? 1.15 : 1) },
+        { translateX: anchorCanvas.x - PLANT_ANCHOR_OFFSET_X * scale.value },
+        { translateY: anchorCanvas.y - anchorOffsetY * scale.value },
+        { scale: scale.value * dragScale.value },
       ],
-      zIndex,
+      zIndex: isDragging.value ? 1000 : baseZIndex,
     };
   });
+
+  // Wilt is visual-only (death is cut): faded sprite + a droplet asking for water
+  const isWilted = plant.hydration <= WILT_THRESHOLD;
 
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.plantContainer, animatedStyle]}>
         {plant.image ? (
-          <Image source={plant.image} style={styles.plantImage} resizeMode="contain" />
+          <Image
+            source={plant.image}
+            style={[styles.plantImage, isWilted && styles.wilted]}
+            resizeMode="contain"
+          />
         ) : (
-          <Text style={styles.plantEmoji}>{PLANT_EMOJIS[plant.plantType]}</Text>
+          <Text style={[styles.plantEmoji, isWilted && styles.wilted]}>
+            {PLANT_EMOJIS[plant.plantType]}
+          </Text>
         )}
+        {isWilted && <Text style={styles.wiltBadge}>💧</Text>}
       </Animated.View>
     </GestureDetector>
   );
@@ -196,16 +236,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: PLANT_SIZE,
     height: PLANT_SIZE,
+    // The animated translate assumes top-left scaling (anchorCanvas −
+    // offset·scale). RN's default center origin adds (size/2)·(1−scale)
+    // drift — plants slid off their tiles when zoomed.
+    transformOrigin: 'top left',
     alignItems: 'center',
     justifyContent: 'center',
-    // Isometric shadow (bottom-right direction)
     shadowColor: '#000',
-    shadowOffset: {
-      width: 3 * IMAGE_SCALE,
-      height: 2 * IMAGE_SCALE,
-    },
+    shadowOffset: { width: 3, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 4 * IMAGE_SCALE,
+    shadowRadius: 4,
     elevation: 5,
   },
   plantImage: {
@@ -215,5 +255,14 @@ const styles = StyleSheet.create({
   plantEmoji: {
     fontSize: PLANT_SIZE * 0.8,
     textAlign: 'center',
+  },
+  wilted: {
+    opacity: 0.55,
+  },
+  wiltBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    fontSize: PLANT_SIZE * 0.25,
   },
 });
