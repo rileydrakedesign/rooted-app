@@ -10,7 +10,6 @@ export type AuthStackParamList = {
   Onboarding4AddFriend: undefined;
   Onboarding5Frequency: { friendName: string };
   Onboarding6ChoosePlant: { friendName: string; frequency: string };
-  Onboarding7PlantBrowse: { friendName: string; frequency: string };
   Onboarding8Celebration: { friendName: string; frequency: string; plantType: string };
   Onboarding9CreateAccount: { friendName: string; frequency: string; plantType: string };
   Onboarding10Complete: undefined;
@@ -34,6 +33,11 @@ export type MainStackParamList = {
   SetFrequency: { friendName: string };
   ChoosePlant: { friendName: string; frequency: string };
   Help: undefined;
+  Shop: undefined;
+  MemoryWall: { friendId: string };
+  AcceptInvite: { code?: string } | undefined;
+  GardenPass: undefined;
+  Almanac: undefined;
 };
 
 // Tab screens can navigate to both tab siblings and parent-stack flow screens.

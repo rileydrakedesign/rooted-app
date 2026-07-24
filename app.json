@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rooted.app",
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.rooted.app"]
+        "com.apple.security.application-groups": [
+          "group.com.rooted.app"
+        ]
       }
     },
     "android": {
@@ -37,6 +39,26 @@
           "ios": {
             "deploymentTarget": "16.4"
           }
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Rooted looks for calendar events with your friends' names so you can log a hangout with one tap.",
+          "remindersPermission": "Rooted does not use reminders; iOS requires this notice because the calendar module includes them."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Rooted saves the photos you choose to a friend's memory wall."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Rooted records voice memos only when you bury one in a time capsule."
         }
       ],
       "@bacons/apple-targets"

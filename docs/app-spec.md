@@ -2,7 +2,9 @@
 
 *A first-principles description of the product from the user's perspective. Slim on purpose.
 Build status, evidence, and open questions live in `feature-set.md`; this doc describes the
-system as designed.*
+system **as designed and now as built** — the full roadmap in [`scope-plan.md`](scope-plan.md)
+(Batches 6–18) is implemented; every number the spec left open was pinned to that plan's §6
+defaults. §9 lists what still needs human hands (art, store accounts, device spikes).*
 
 Rooted is a pixel-art garden where every plant is a real person you care about. Staying in
 touch keeps a plant thriving; drifting lets it wilt. Plants never die, progress is never lost,
@@ -22,17 +24,20 @@ Connecting with the friend waters it back up.
 **The streak counts periods, not days.** Keep up your chosen cadence — at least one real
 connection per period — and the streak grows: "8 weeks strong" for a weekly friend, "5 months
 strong" for a monthly one. The streak pays a point multiplier that steps up at tiers
-(×1.0 → ×1.25 → ×1.5 → ×1.75 → ×2.0 cap). Past the cap, milestones pay prestige instead:
-permanent cosmetic marks on the plant (a golden ring on the pot, a rare bloom).
+(periods 1–2 ×1.0 · 3–4 ×1.25 · 5–8 ×1.5 · 9–12 ×1.75 · 13+ ×2.0 cap). Past the cap,
+milestones pay prestige instead — every fourth period from 13 — as permanent cosmetic marks
+on the plant (a golden ring on the pot, a rare bloom). Changing a cadence never insta-breaks
+a streak: the current window keeps the later of the old and new deadlines.
 
 **Missing a period breaks the streak — and nothing else.** The plant looks wilted until your
 next connection, then springs back. The plant itself, its growth, its upgrades, its photos and
 journal: all of it is permanent. Only the streak resets.
 
 **Streaks can be restored.** For one cadence period after a break, you can buy the streak back
-with points (price scales with how long the streak was, and climbs if you keep doing it) or a
-flat handful of gems. Restoring re-arms the streak — you still have to actually reach out to
-keep it. There is never a way to pay real money for this.
+with points (100 × the broken streak's tier, doubling on repeat restores of the same plant
+within 90 days) or a flat 5 gems. Restoring re-arms the streak **without satisfying the
+window** — you still have to actually reach out to keep it. There is never a way to pay real
+money for this.
 
 **Pause when life happens.** Vacation mode freezes every clock — hydration, streaks, all of it.
 Planned absence is always free.
@@ -40,11 +45,11 @@ Planned absence is always free.
 ## 2. Earning: points and gems
 
 - **Points** come from one place: connecting with your people. Every logged connection mints
-  points, weighted by effort (an in-person hang beats a long call beats a quick call beats a
-  text), multiplied by that plant's streak tier. Full earning once per plant per day; extra
-  same-day logs trickle.
-- **Gems** are rare and only drop at moments that matter: streak tier-ups, blooms, first call
-  of the year, both of you showing up during a seasonal event.
+  points, weighted by effort — hung out 50, called 35, texted 15 — multiplied by that plant's
+  streak tier. Full earning once per plant per day; extra same-day logs trickle 5.
+- **Gems** are rare and only drop at moments that matter: streak tier-ups (+3, once per tier
+  per friend — no farming by breaking and rebuilding), prestige milestones (+5), first call
+  of the year (+2), both of you showing up during a seasonal event (+5 each).
 - No login rewards, no ads, no buying currency. If your garden is rich, it's because your
   friendships are.
 
@@ -93,9 +98,10 @@ soft notification. Not a chat: no threads, no read receipts, no pressure to repl
 - 🍂 Falling leaf — "it's been a while, no pressure"
 - 🐞 Ladybug — playful poke
 
-**Message actions** — the expressive tier on top of nudges:
-- **Songs:** attach a track and a short message via the Music Box; their plant sways while it
-  plays.
+**Message actions** — the expressive tier on top of nudges (capped at 3 signals per link per
+day; none of them mint anything):
+- **Songs:** search a track in the Music Box and send it with a short message; their plant
+  sways while a 30-second preview plays (full Apple Music/Spotify playback is a later pass).
 - **Pictures:** send a photo to their plant; either of you can file it into the shared memory
   wall.
 - **Plant actions + haptics:** remotely make their plant shimmer, shake, or shimmy, delivered
@@ -115,8 +121,10 @@ proof required — the app trusts you.
 
 - **In-person hangout** — the highest-value log. Comes with an optional photo prompt that
   feeds the plant's memory wall.
-- **Call** — tap Call on the plant and the app dials for you; when the call can be detected
-  automatically, the plant waters itself. Otherwise one tap after.
+- **Call** — tap Called on a plant with a number on file and the app offers to dial for you,
+  then logs it. Automatic call detection (the plant watering itself) waits on a device-level
+  CallKit spike — manual-first ships regardless, and an auto-detected call will never earn
+  more than a manual log.
 - **Manual log** — "we connected." Covers texts, video calls, running into each other.
   Optional note.
 - **Suggested logs** — the app notices a calendar event with Maya's name and asks "did you see
@@ -134,7 +142,9 @@ Each plant quietly becomes the archive of that friendship:
   and unpolished. Private by default; shared with the friend once linked, and only the photos
   you explicitly choose to share.
 - **Time capsules** — bury a note, photo, or voice memo in a plant; it unlocks on the date you
-  chose. Linked pairs can bury one together.
+  chose (a quiet notification tells you when). Linked pairs can bury one together. One buried
+  capsule per plant free, five with the Pass. Photo walls hold 20 per plant free, unlimited
+  with the Pass.
 
 ## 7. The full journey
 
@@ -151,9 +161,14 @@ restarts at week one… or you spend the points to restore it, and then call him
 the restore only counts if you follow through. Going somewhere without signal? Pause the
 garden first; it all freezes.
 
-**When a friend joins.** You send Sarah her invite — "you're a monstera in my garden." Plants
-link and intertwine. Now she waters it too, sunlight and songs go back and forth, your hangout
-photos land on one shared wall, and the plant becomes something you keep *together*.
+**When a friend joins.** You send Sarah her invite — "you're a monstera in my garden" — as a
+link, or just read her the 8-character code (she redeems it from Settings if she installed
+fresh). Plants link and intertwine, and if either of you had a streak going, the pair inherits
+the longer one; the shared clock runs on the more relaxed of your two cadences, and it freezes
+if either of you pauses. Now she waters it too — either log counts for both, duplicate logs of
+the same hangout merge, and you both earn. Sunlight and songs go back and forth, your hangout
+photos land on one shared wall, and the plant becomes something you keep *together*. Invites
+that expire or go unanswered never surface as rejection.
 
 **Over a year.** The garden becomes legible history: mature plants for the friendships you've
 tended, golden rings for the long streaks, a wall of photos per person, seasonal flowers that
@@ -162,12 +177,18 @@ shareable recap.
 
 **Around the edges.**
 - **Notifications** are plant-voiced and warm ("Maya's fern misses the sun"), capped in
-  frequency, bundled into a morning digest, and never fire about someone you already contacted.
-- **Sharing** — snapshot your garden to any app; recap cards from the Almanac.
-- **Settings** — pause, notification categories, account.
-- **Garden Pass** (the only real-money purchase, plus à-la-carte cosmetics): more plant
-  capacity, rare species, full photo storage, more capsule slots, Almanac history. Money never
-  touches care, currency, or recovery.
+  frequency, bundled into a morning digest at your chosen hour, and never fire about someone
+  you already contacted — streak-at-risk alerts carry *Call / Text / Already did* buttons, and
+  "already did" logs it without even opening the app. A paused garden is visibly paused in the
+  garden itself, and its notifications go quiet.
+- **Sharing** — snapshot your garden to any app; shareable recap cards from the Almanac
+  (which lives in Settings, alongside your collection of seasonal and streak-earned flora).
+- **Settings** — pause, notification categories, garden theme, invite redemption, Almanac,
+  Garden Pass, account.
+- **Garden Pass** (the only real-money purchase — $4.99/mo or $29.99/yr — plus à-la-carte
+  cosmetics): more plant capacity (12 free, unlimited with Pass; downgrading soft-locks the
+  overflow view-only, never deletes), rare species, full photo storage, more capsule slots,
+  Almanac history. Money never touches care, currency, or recovery.
 
 ## 8. What the app will never do
 
@@ -176,3 +197,20 @@ shareable recap.
 - Guilt you: no "you're a bad friend," no loss countdowns, no shame copy — ever.
 - Demand proof of a connection, or force you to invite anyone.
 - Let a hollow ping be worth as much as a real conversation.
+
+## 9. Where this stands
+
+Everything above is implemented end-to-end — schema, server logic, and client — through the
+full [`scope-plan.md`](scope-plan.md) roadmap (Batches 6–18): the solo core (streaks, warm
+notifications, the earned economy, shop, memory layer), linking (shared streaks, nudges,
+songs, shared walls, gifts, co-op capsules), and the year-scale layer (Almanac, collections,
+live-ops, Garden Pass scaffolding). What still needs human hands:
+
+- **Art** — all cosmetic/decor/theme/celebration sprites are design-pending by intent: the
+  registries (`attachmentCatalog`, `DECOR_ASSETS`, themed tile maps) render placeholders or
+  nothing until sprites are dropped in; nameplates and every mechanic work today.
+- **Store setup** — RevenueCat app + products, the `EXPO_PUBLIC_REVENUECAT_IOS_KEY` env var,
+  and the `REVENUECAT_WEBHOOK_SECRET` function secret (the paywall degrades gracefully until
+  then).
+- **Device spikes** — CallKit call detection (gates auto-watering only) and background
+  haptic delivery, both of which need a physical-device session.

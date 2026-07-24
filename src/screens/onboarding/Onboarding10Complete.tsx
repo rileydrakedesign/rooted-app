@@ -1,14 +1,57 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import { AuthStackScreenProps } from '../../types/navigation';
 import { Fonts, FontSizes } from '../../constants/fonts';
+import { Colors } from '../../constants/theme';
 import { PixelButton, ProgressBar } from '../../components';
+import { useGarden } from '../../contexts/GardenContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { HYDRATION_WEIGHTS } from '../../lib/garden';
+import PixelIcon from '../../components/PixelIcon';
 
 type Props = AuthStackScreenProps<'Onboarding10Complete'>;
 
-export default function Onboarding10Complete({ navigation }: Props) {
-  // In a real implementation, this would navigate to the main app
-  // Since we're authenticated, the RootNavigator will automatically switch to MainNavigator
+/**
+ * Final onboarding step: the first care action. The friend seeded during
+ * account creation gets watered right here — the user has already done the
+ * thing the app is for before they ever see the garden. ENTER GARDEN ends
+ * the onboarding hold and lets RootNavigator switch to Main.
+ */
+export default function Onboarding10Complete({}: Props) {
+  const { plants, logInteraction } = useGarden();
+  const { setOnboardingActive } = useAuth();
+  const [watered, setWatered] = useState(false);
+  const [watering, setWatering] = useState(false);
+
+  // The seeded first friend (signup created exactly one).
+  const firstPlant = plants[0];
+
+  const bounce = useRef(new Animated.Value(1)).current;
+  const rewardOpacity = useRef(new Animated.Value(0)).current;
+
+  const handleWater = async () => {
+    if (!firstPlant || watering) return;
+    setWatering(true);
+    try {
+      await logInteraction(firstPlant.id, 'manual');
+      setWatered(true);
+      Animated.parallel([
+        Animated.sequence([
+          Animated.spring(bounce, { toValue: 1.25, useNativeDriver: true }),
+          Animated.spring(bounce, { toValue: 1, friction: 4, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(rewardOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+          Animated.delay(1200),
+          Animated.timing(rewardOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+        ]),
+      ]).start();
+    } catch (e) {
+      console.warn('[ONBOARDING] first watering failed:', e);
+    } finally {
+      setWatering(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -20,33 +63,54 @@ export default function Onboarding10Complete({ navigation }: Props) {
       </View>
 
       <View style={styles.content}>
-        {/* Celebration Title (already ALL CAPS) */}
-        <Text style={styles.title}>SETUP COMPLETE!</Text>
+        <Text style={styles.title}>
+          {watered ? 'OFF TO A\nGREAT START!' : 'ONE LAST THING'}
+        </Text>
 
-        {/* Garden Visual */}
         <View style={styles.greenhouseContainer}>
-          <Image
-            source={require('../../../assets/images/Logos/RootedLogo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.greenhouseText}>Your Garden</Text>
+          {firstPlant ? (
+            <Animated.Image
+              source={firstPlant.image}
+              style={[styles.plantSprite, { transform: [{ scale: bounce }] }]}
+              resizeMode="contain"
+            />
+          ) : (
+            <Image
+              source={require('../../../assets/images/Logos/RootedLogo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          )}
+          <Animated.View style={[styles.rewardBadge, { opacity: rewardOpacity }]}>
+            <PixelIcon name="water" size={18} color={Colors.white} />
+            <Text style={styles.rewardText}>+{HYDRATION_WEIGHTS.manual}</Text>
+          </Animated.View>
+          {firstPlant && (
+            <Text style={styles.greenhouseText}>{firstPlant.friendName}</Text>
+          )}
         </View>
 
-        {/* Message */}
         <Text style={styles.message}>
-          Your garden is ready!{'\n'}Let's start growing!
+          {watered
+            ? "You've already done the thing this app is for.\nWelcome to your garden!"
+            : firstPlant
+            ? `Give ${firstPlant.friendName}'s plant its first water — that's what staying in touch feels like here.`
+            : "Your garden is ready!\nLet's start growing!"}
         </Text>
       </View>
 
-      {/* Enter Garden Button */}
-      <PixelButton
-        title="ENTER GARDEN"
-        onPress={() => {
-          // The app will automatically navigate to Main due to authentication state
-          // This is handled by RootNavigator
-        }}
-      />
+      {!watered && firstPlant ? (
+        <PixelButton
+          title={watering ? 'WATERING…' : 'WATER YOUR PLANT'}
+          onPress={handleWater}
+          disabled={watering}
+        />
+      ) : (
+        <PixelButton
+          title="ENTER GARDEN"
+          onPress={() => setOnboardingActive(false)}
+        />
+      )}
     </View>
   );
 }
@@ -75,14 +139,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: FontSizes.titleLarge,
+    fontSize: FontSizes.titleMedium,
     fontFamily: Fonts.heading,
     fontWeight: 'bold',
     color: '#8B4513',
-    marginBottom: 50,
+    marginBottom: 40,
     textAlign: 'center',
+    lineHeight: 40,
   },
   greenhouseContainer: {
+    position: 'relative',
     width: 220,
     height: 220,
     backgroundColor: '#DEB887',
@@ -93,9 +159,32 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#8B4513',
   },
+  plantSprite: {
+    width: 140,
+    height: 140,
+  },
   logo: {
     width: 150,
     height: 100,
+  },
+  rewardBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.waterBlue,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.waterBlueDark,
+  },
+  rewardText: {
+    fontSize: FontSizes.bodyMedium,
+    fontFamily: Fonts.heading,
+    color: Colors.white,
   },
   greenhouseText: {
     fontSize: FontSizes.bodyMedium,
@@ -105,11 +194,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   message: {
-    fontSize: FontSizes.bodyLarge,
+    fontSize: FontSizes.bodyMedium,
     fontFamily: Fonts.subtext,
     color: '#6B4423',
     textAlign: 'center',
-    lineHeight: 28,
-    fontWeight: '600',
+    lineHeight: 26,
+    paddingHorizontal: 10,
   },
 });

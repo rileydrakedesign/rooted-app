@@ -12,9 +12,10 @@
 index.ts                       registerRootComponent, enableScreens(), imports gesture-handler FIRST
 └── App.tsx                    loads 3 Google Fonts, holds splash until ready
     └── SafeAreaProvider
-        └── FriendsProvider    friends[]  (in-memory)
-            └── GardenProvider plants[], occupancy  (in-memory)
-                └── RootNavigator
+        └── AuthProvider       session/user  (the only supabase.auth subscription)
+            └── FriendsProvider    friends[]  (in-memory)
+                └── GardenProvider plants[], occupancy  (in-memory)
+                    └── RootNavigator
 ```
 
 `import 'react-native-gesture-handler'` must stay the **first** import in `index.ts`.
@@ -26,11 +27,14 @@ A font-load failure is caught and the app continues with system fonts.
 
 ## Navigation
 
-`RootNavigator` subscribes to Supabase auth and switches stacks on session presence.
+`RootNavigator` reads `useAuth()` and switches stacks on session presence. The
+`onboardingActive` flag (AuthContext, set by the signup flow) holds the Auth stack mounted
+after `signUp` creates a session, so the post-signup steps (first watering on `10Complete`)
+can run before the garden takes over.
 
 | Stack | Condition | Screens |
 |---|---|---|
-| **AuthNavigator** | no session | `Onboarding1Welcome` → `2ValueProp` → `3Educational` → `4AddFriend` → `5Frequency` → `6ChoosePlant` → (`7PlantBrowse`, aliased to the same component) → `8Celebration` → `9CreateAccount` → `10Complete`, plus `Login` |
+| **AuthNavigator** | no session, or `onboardingActive` | `Onboarding1Welcome` → `2ValueProp` → `3Educational` → `4AddFriend` → `5Frequency` → `6ChoosePlant` → `8Celebration` → `9CreateAccount` → `10Complete` (first watering), plus `Login` |
 | **MainNavigator** | session | `Tabs` (home; bottom tabs: `Garden` · `Friends` · `Settings`), plus stack screens pushed above the tabs: `AddFriend` → `SetFrequency` → `ChoosePlant`, and `Help` |
 
 AuthNavigator is a **native stack**; MainNavigator is a native stack whose first screen is a
@@ -84,15 +88,18 @@ There is no Redux/Zustand/Query layer. State is React context plus local compone
 | `GardenContext` | `plants[]`, `loading`, async `addPlant`, `updatePlantPosition`, `canPlaceAt`, derived `occupancy`, `gardenPaused` + async `setGardenPaused` | ✅ loads via `fetchGarden(userId)` on sign-in, clears on sign-out; `addPlant` awaits the insert; position updates persist in the background (optimistic locally); pause persists via the `set_garden_paused` RPC |
 | `GardenCameraContext` | `cameraX`, `cameraY`, `scale` (Reanimated SharedValues), `containerFrame` | n/a — mounted per-screen inside `GardenScreen`, so the camera resets on remount |
 
-`GardenContext` owns the auth awareness (`getSession()` + `onAuthStateChange`, deferred with
-`setTimeout` because supabase-js holds a lock during the callback; a user-id ref suppresses
-reloads on `TOKEN_REFRESHED`) and pushes loaded friends into `FriendsContext`. All DB access goes
-through [`src/lib/garden.ts`](../../src/lib/garden.ts). Hydration is persisted but static — no
-decay loop exists yet. See [`DATA-MODEL.md`](DATA-MODEL.md).
+Auth awareness lives in **`AuthContext`** (Batch 6): the single
+`getSession()`/`onAuthStateChange` subscription (deferred with `setTimeout` because
+supabase-js holds a lock during the callback). `GardenContext` reacts to `useAuth().user?.id`
+— loads on sign-in (a user-id ref suppresses reloads on `TOKEN_REFRESHED`), clears on
+sign-out — and pushes loaded friends into `FriendsContext`. Before each load/foreground
+refresh it replays the offline log queue (`src/lib/logQueue.ts` — failed `log_interaction`
+calls persisted in AsyncStorage with client-generated interaction UUIDs; the RPC is idempotent
+on that id). All DB access goes through [`src/lib/garden.ts`](../../src/lib/garden.ts). See
+[`DATA-MODEL.md`](DATA-MODEL.md).
 
 Known duplication to clean up rather than extend:
 - `GardenContext.selectedPlant` is dead — `GardenScreen` keeps its own local `selectedPlant`.
-- There is no shared `useAuth` hook; screens each call `supabase.auth.getUser()`.
 
 ---
 
@@ -104,18 +111,33 @@ App.tsx                      fonts, splash, providers
 src/
   navigation/                RootNavigator (auth gate), AuthNavigator, MainNavigator (tabs+stack)
   screens/                   Garden, Friends, AddFriend, SetFrequency, ChoosePlant, Settings, Help,
-    onboarding/              Login, SignUp, Welcome  ·  10-step onboarding flow
+                             Shop, MemoryWall, AcceptInvite, GardenPass, Almanac
+    onboarding/              Login  ·  onboarding flow (signup lives in Onboarding9CreateAccount;
+                             the first watering happens on Onboarding10Complete)
   components/
     garden/                  TileMap (Skia), DraggablePlant, PlantInfoPanel, TopBar
     icons/                   pixelIcons.ts (generated — see scripts/gen-pixel-icons.js)
     *.tsx                    PixelButton, PixelInput, ProgressBar, BackButton, PixelIcon,
                              PixelCard, HydrationBar, ScreenHeader, BottomSheet, FrequencyPicker
-  contexts/                  FriendsContext, GardenContext, GardenCameraContext
+  contexts/                  AuthContext, FriendsContext, GardenContext, GardenCameraContext
   utils/                     isoMath, occupancy, placementRules, debugLog
   types/                     garden, database, navigation
   constants/                 theme (Colors, Spacing), fonts
   data/                      exampleMap (map + TILE_IMAGES registry), plantCatalog (STARTER_PLANTS), walls
   lib/supabase.ts            typed Supabase client
+  lib/garden.ts              garden persistence service (+ layout/decor/haptics)
+  lib/logQueue.ts            offline interaction-log queue (AsyncStorage)
+  lib/notifications.ts       cancel-all-and-reschedule local notification engine (B8)
+  lib/calendarScan.ts        calendar-suggested logs (B8)
+  lib/economy.ts             balances, ledger, streak restores (B9)
+  lib/shop.ts                catalog/inventory/purchases/attachments (B10/B15)
+  lib/memories.ts            journal, photo wall, birthdays (B11)
+  lib/links.ts               invites, links, push, realtime (B13)
+  lib/nudges.ts              nudges, haptic signatures, shared wall (B14)
+  lib/capsules.ts            time capsules (B16)
+  lib/purchases.ts           Garden Pass / RevenueCat, config-gated (B17)
+  lib/almanac.ts             year summary + collections (B18)
+  lib/musicBox.ts            song previews over the nudge channel (B18)
 assets/images/
   plants/pixel/              plant sprites (PNG, static require)
   garden/tiles/              isometric terrain tiles
@@ -139,7 +161,7 @@ Custom **dev build only — Expo Go will not work** (Skia + Reanimated v4 need n
 | `npx expo run:ios` | Full native build + launch (10–15 min first time; needed after native/dep changes) |
 | `npx expo start --dev-client` | Metro only — the normal loop for JS-only changes |
 | `npx expo start --dev-client --clear` | Reset Metro cache |
-| `npx tsc --noEmit` | Typecheck. **Baseline: 6 pre-existing errors** in `WelcomeScreen` (2), `SignUpScreen` (2), `AuthNavigator` (1), `FriendsContext` (1). |
+| `npx tsc --noEmit` | Typecheck. **Baseline: 0 errors** (the old WelcomeScreen/SignUpScreen/AuthNavigator debt was deleted with those dead screens in Batch 6). Keep it at 0. |
 
 Bundle id: `com.rooted.app`. There is **no test suite and no lint config** — `npx tsc --noEmit` is
 the only automated check.

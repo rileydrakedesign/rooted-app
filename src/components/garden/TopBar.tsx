@@ -10,6 +10,10 @@ interface TopBarProps {
   onAddFriendPress: () => void;
   onNotificationPress: () => void;
   onSharePress?: () => void;
+  /** Points/gems HUD (Batch 9). Hidden when undefined. */
+  balances?: { points: number; gems: number };
+  /** Shop entry (Batch 10). */
+  onShopPress?: () => void;
 }
 
 /**
@@ -22,10 +26,12 @@ export default function TopBar({
   onAddFriendPress,
   onNotificationPress,
   onSharePress,
+  balances,
+  onShopPress,
 }: TopBarProps) {
   return (
     <View style={styles.container}>
-      {/* Left: Share */}
+      {/* Left: Share + currency HUD */}
       <View style={styles.leftSection}>
         {onSharePress && (
           <TouchableOpacity
@@ -36,6 +42,18 @@ export default function TopBar({
             <PixelIcon name="camera" size={22} />
           </TouchableOpacity>
         )}
+        {balances && (
+          <View style={styles.hud}>
+            <View style={styles.hudChip}>
+              <PixelIcon name="bolt" size={12} color={Colors.streakGold} />
+              <Text style={styles.hudText}>{balances.points}</Text>
+            </View>
+            <View style={styles.hudChip}>
+              <PixelIcon name="star" size={12} color={Colors.forestGreen} />
+              <Text style={styles.hudText}>{balances.gems}</Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Center: Garden Title (absolutely positioned) */}
@@ -45,6 +63,17 @@ export default function TopBar({
 
       {/* Right: Action Buttons */}
       <View style={styles.rightSection}>
+        {/* Shop */}
+        {onShopPress && (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={onShopPress}
+            activeOpacity={0.7}
+          >
+            <PixelIcon name="home" size={22} />
+          </TouchableOpacity>
+        )}
+
         {/* Add Friend Button */}
         <TouchableOpacity
           style={[styles.iconButton, styles.addButton]}
@@ -127,6 +156,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 6,
+  },
+  hud: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  hudChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.cream,
+    borderColor: Colors.pixelBorder,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  hudText: {
+    fontSize: 12,
+    fontFamily: Fonts.pixel,
+    color: Colors.textBrown,
+    fontWeight: 'bold',
   },
   addButton: {
     backgroundColor: Colors.sageGreen,

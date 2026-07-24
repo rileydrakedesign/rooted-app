@@ -10,6 +10,9 @@ export interface Friend {
   lastContactAt?: string; // ISO timestamp behind lastContact (widget sync)
   contactFrequency: string; // Display label, e.g. 'Weekly'
   image?: any; // Plant sprite asset
+  phone?: string | null; // For Call/Text notification actions (Batch 8)
+  birthday?: string | null; // 'YYYY-MM-DD' (Batch 11); year may be a placeholder
+  hapticSignature?: string; // per-friend signature buzz (Batch 14)
 }
 
 interface FriendsContextType {

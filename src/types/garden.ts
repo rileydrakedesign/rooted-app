@@ -31,6 +31,35 @@ export interface Plant {
   hydration: number; // 0-100
   position: TileCoord; // Grid tile the plant stands on (the only position it stores)
   image?: any; // Sprite asset (always resolved via plantCatalog for DB rows)
+
+  // Streak state (Batch 7) — DB commits are authoritative; these mirror the
+  // plants row after sync_streaks() rolled it forward at load time.
+  streak: number; // consecutive satisfied cadence periods
+  streakBest: number;
+  prestigeLevel: number; // milestones past the ×2.0 tier cap
+  windowStart: string; // ISO — current cadence window opened here
+  windowSatisfied: boolean; // this window already has a logged connection
+  brokenAt: string | null; // ISO deadline the streak broke at (restore window arms from here)
+  brokenCount: number; // streak value at break time (what a restore brings back)
+  cadenceDays: number; // 7 / 14 / 30 — the plant's period length
+
+  /**
+   * The DB plants.id (Batch 10) — needed only for plant_attachments writes.
+   * Everything else keys off Plant.id === Friend.id; never surface this in UI.
+   */
+  dbPlantId: string;
+  /** Equipped cosmetics by slot (slot = shop category for v1). */
+  attachments: PlantAttachment[];
+
+  /** Linking (Batch 13): non-null when this plant is grafted to a friend's
+   *  reciprocal plant. Streak fields then mirror the SHARED streak. */
+  linkId: string | null;
+  partnerUserId: string | null;
+}
+
+export interface PlantAttachment {
+  slot: string; // 'pot' | 'nameplate' | 'accessory' | 'bloom'
+  sku: string;
 }
 
 /**

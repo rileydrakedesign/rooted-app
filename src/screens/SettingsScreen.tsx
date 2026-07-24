@@ -11,9 +11,15 @@ import {
 import { MainTabScreenProps } from '../types/navigation';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { Fonts, FontSizes } from '../constants/fonts';
-import { supabase } from '../lib/supabase';
 import { useGarden } from '../contexts/GardenContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ScreenHeader, PixelCard, PixelIcon, PixelIconName } from '../components';
+import {
+  NotificationPrefs,
+  requestNotificationPermission,
+} from '../lib/notifications';
+import { requestCalendarPermission } from '../lib/calendarScan';
+import { GARDEN_MAPS } from '../data/maps';
 
 type Props = MainTabScreenProps<'Settings'>;
 
@@ -46,27 +52,87 @@ function SettingsRow({ icon, label, subtext, onPress, right, showChevron, disabl
   );
 }
 
+// Digest hours the row cycles through on tap (24 h clock).
+const DIGEST_HOURS = [7, 8, 9, 10, 12, 18];
+
+function formatHour(hour: number): string {
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:00 ${hour < 12 ? 'AM' : 'PM'}`;
+}
+
 export default function SettingsScreen({ navigation }: Props) {
-  const { gardenPaused, setGardenPaused } = useGarden();
+  const {
+    gardenPaused,
+    setGardenPaused,
+    notificationPrefs,
+    setNotificationPrefs,
+    gardenTheme,
+    setGardenTheme,
+    availableThemes,
+  } = useGarden();
+  const { user, signOut } = useAuth();
   const [pauseSaving, setPauseSaving] = useState(false);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [streakCelebrations, setStreakCelebrations] = useState(true);
-  const [dailyReminderTime] = useState('8:00 AM');
-  const [gardenTheme] = useState('Cozy Greenhouse');
+
+  // Cycle through equippable themes (free default + owned skus, Batch 12).
+  const cycleGardenTheme = async () => {
+    const idx = availableThemes.indexOf(gardenTheme);
+    const next = availableThemes[(idx + 1) % availableThemes.length];
+    if (!next || next === gardenTheme) {
+      Alert.alert('Garden Themes', 'More themes are waiting in the shop.');
+      return;
+    }
+    try {
+      await setGardenTheme(next);
+    } catch (error: any) {
+      Alert.alert('Could Not Update', error?.message ?? 'Please try again.');
+    }
+  };
   // Display-only placeholder — nothing enforces this cap yet (enforcement
   // lands with real persistence). Framed as "close friends" (intimacy),
   // not scarcity.
   const [friendLimit] = useState({ current: 12, max: 30 });
-  const [userEmail, setUserEmail] = useState('');
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? '');
-    });
-  }, []);
+  const userEmail = user?.email ?? '';
 
   const comingSoon = (feature: string) => () => {
     Alert.alert(feature, `${feature} coming soon`);
+  };
+
+  /**
+   * Flip one pref. Turning a notification category on asks for the OS
+   * permission (once); turning calendar suggestions on asks for calendar
+   * access. Failures surface, and the toggle reverts via the context.
+   */
+  const togglePref = async (key: keyof NotificationPrefs) => {
+    const next = { ...notificationPrefs, [key]: !notificationPrefs[key] };
+    try {
+      if (next[key] === true) {
+        if (key === 'suggested') {
+          const ok = await requestCalendarPermission();
+          if (!ok) {
+            Alert.alert(
+              'Calendar Access Needed',
+              'Rooted needs calendar access to suggest hangout logs. You can enable it in iOS Settings.'
+            );
+            return;
+          }
+        } else {
+          await requestNotificationPermission();
+        }
+      }
+      await setNotificationPrefs(next);
+    } catch (error: any) {
+      Alert.alert('Could Not Update', error?.message ?? 'Please try again.');
+    }
+  };
+
+  const cycleDigestHour = async () => {
+    const idx = DIGEST_HOURS.indexOf(notificationPrefs.digestHour);
+    const nextHour = DIGEST_HOURS[(idx + 1) % DIGEST_HOURS.length];
+    try {
+      await setNotificationPrefs({ ...notificationPrefs, digestHour: nextHour });
+    } catch (error: any) {
+      Alert.alert('Could Not Update', error?.message ?? 'Please try again.');
+    }
   };
 
   const handlePauseToggle = async () => {
@@ -92,9 +158,12 @@ export default function SettingsScreen({ navigation }: Props) {
           style: 'destructive',
           onPress: async () => {
             // RootNavigator swaps to the auth stack and GardenContext clears
-            // on the SIGNED_OUT event; no navigation needed here.
-            const { error } = await supabase.auth.signOut();
-            if (error) Alert.alert('Logout Failed', error.message);
+            // when the session goes null; no navigation needed here.
+            try {
+              await signOut();
+            } catch (error: any) {
+              Alert.alert('Logout Failed', error?.message ?? 'Please try again.');
+            }
           },
         },
       ]
@@ -132,30 +201,59 @@ export default function SettingsScreen({ navigation }: Props) {
             </PixelCard>
           </View>
 
-          {/* NOTIFICATIONS Section */}
+          {/* NOTIFICATIONS Section — wired to users.notification_prefs (Batch 8) */}
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>NOTIFICATIONS</Text>
             <PixelCard>
               <SettingsRow
-                icon="bell"
-                label="Push Notifications"
-                onPress={() => setPushNotifications(!pushNotifications)}
-                right={toggle(pushNotifications)}
+                icon="sun"
+                label="Morning Digest"
+                subtext="One gentle summary of your garden"
+                onPress={() => togglePref('digest')}
+                right={toggle(notificationPrefs.digest)}
               />
               <View style={styles.rowDivider} />
               <SettingsRow
                 icon="clock"
-                label="Daily Reminder Time"
-                onPress={comingSoon('Daily Reminder Time')}
-                right={<Text style={styles.rowValue}>{dailyReminderTime}</Text>}
+                label="Digest Time"
+                onPress={cycleDigestHour}
+                right={
+                  <Text style={styles.rowValue}>
+                    {formatHour(notificationPrefs.digestHour)}
+                  </Text>
+                }
                 showChevron
               />
               <View style={styles.rowDivider} />
               <SettingsRow
+                icon="bolt"
+                label="Streak Alerts"
+                subtext="A nudge before a streak window closes"
+                onPress={() => togglePref('atRisk')}
+                right={toggle(notificationPrefs.atRisk)}
+              />
+              <View style={styles.rowDivider} />
+              <SettingsRow
+                icon="water"
+                label="Thirsty Plant Alerts"
+                subtext="When a plant is about to wilt"
+                onPress={() => togglePref('wilt')}
+                right={toggle(notificationPrefs.wilt)}
+              />
+              <View style={styles.rowDivider} />
+              <SettingsRow
+                icon="calendar"
+                label="Calendar Suggestions"
+                subtext="Spot hangouts on your calendar, log in one tap"
+                onPress={() => togglePref('suggested')}
+                right={toggle(notificationPrefs.suggested)}
+              />
+              <View style={styles.rowDivider} />
+              <SettingsRow
                 icon="star"
-                label="Streak Celebrations"
-                onPress={() => setStreakCelebrations(!streakCelebrations)}
-                right={toggle(streakCelebrations)}
+                label="Birthday Reminders"
+                onPress={() => togglePref('birthdays')}
+                right={toggle(notificationPrefs.birthdays)}
               />
             </PixelCard>
           </View>
@@ -167,8 +265,15 @@ export default function SettingsScreen({ navigation }: Props) {
               <SettingsRow
                 icon="paint-brush"
                 label="Garden Theme"
-                onPress={comingSoon('Garden Theme')}
-                right={<Text style={styles.rowValue}>{gardenTheme}</Text>}
+                subtext={
+                  availableThemes.length > 1 ? 'Tap to switch' : 'More themes in the shop'
+                }
+                onPress={cycleGardenTheme}
+                right={
+                  <Text style={styles.rowValue}>
+                    {GARDEN_MAPS[gardenTheme]?.displayName ?? gardenTheme}
+                  </Text>
+                }
                 showChevron
               />
               <View style={styles.rowDivider} />
@@ -202,6 +307,30 @@ export default function SettingsScreen({ navigation }: Props) {
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>SUPPORT</Text>
             <PixelCard>
+              <SettingsRow
+                icon="calendar"
+                label="Almanac"
+                subtext="Your year in the garden"
+                onPress={() => navigation.navigate('Almanac')}
+                showChevron
+              />
+              <View style={styles.rowDivider} />
+              <SettingsRow
+                icon="star"
+                label="Garden Pass"
+                subtext="More room, every photo kept, deep Almanac"
+                onPress={() => navigation.navigate('GardenPass')}
+                showChevron
+              />
+              <View style={styles.rowDivider} />
+              <SettingsRow
+                icon="users"
+                label="Redeem Invite Code"
+                subtext="A friend planted you in their garden?"
+                onPress={() => navigation.navigate('AcceptInvite')}
+                showChevron
+              />
+              <View style={styles.rowDivider} />
               <SettingsRow
                 icon="question-circle"
                 label="Help & Feedback"

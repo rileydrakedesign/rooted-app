@@ -5,7 +5,7 @@
 ## CRITICAL RULES
 
 - **NEVER assume Expo Go.** This app requires a **custom dev build** (`com.rooted.app`) — Skia and Reanimated v4 need native modules, and `react-native-screens` needs `newArchEnabled: false`. JS-only change → `npx expo start --dev-client`. Native/dep change → `npx expo run:ios`.
-- **ALWAYS run `npx tsc --noEmit` before suggesting a commit.** There is **no test suite and no linter** — this is the only automated check. **Baseline is 4 pre-existing errors** (`WelcomeScreen` ×2, `SignUpScreen` ×1, `AuthNavigator` ×1 — all navigation-typing debt). Never add a 5th; never claim you fixed the baseline unless you did.
+- **ALWAYS run `npx tsc --noEmit` before suggesting a commit.** There is **no test suite and no linter** — this is the only automated check. **Baseline is 0 errors** (the old WelcomeScreen/SignUpScreen/AuthNavigator debt was deleted with those dead screens in Batch 6). Never introduce an error.
 - **All database work goes through the Supabase MCP server** (project `ojotriwvmudyoeyihynb`). NEVER use `psql` or a direct connection. DDL → `apply_migration`. DML → `execute_sql`. Mirror every schema change into `supabase-schema.sql` **and** `docs/source-of-truth/DATA-MODEL.md`.
 - **NEVER hand-edit `src/types/database.ts`.** It is **generated from the live schema** (Supabase MCP `generate_typescript_types`). After any migration, regenerate it; use its `Tables<'name'>` helper for row types. If it and `supabase-schema.sql` disagree, the live DB is the truth — regenerate and re-mirror.
 - **NEVER hand-edit garden coordinate math without reading `src/utils/isoMath.ts`'s header contract.** The Skia `<Group>` transform in `TileMap.tsx` and `worldToCanvas()` must stay exact mirrors. They desync **silently** — plants slide off tiles, nothing errors.
@@ -41,34 +41,38 @@ maintaining friendships legible and tactile.
 
 ---
 
-## ⚠️ Current state: garden persists, mechanics don't exist yet
+## Current state: the full scope-plan roadmap (Batches 6–18) is implemented
 
 Before building on top of anything, know this:
 
-- **Friends + plants persist per user** (Batch 2). `GardenContext` loads via
-  `fetchGarden(userId)` on sign-in and clears on sign-out; writes go through
-  **`src/lib/garden.ts`** — the only file that talks to the `friends`/`plants` tables. Client
-  ids are the DB `friends.id` (client invariant: `Plant.id === Friend.id`).
-- **`handle_new_user` trigger exists** — every signup gets a `public.users` row (pre-existing
-  auth users were backfilled).
-- **Decay + wilt + pause exist (Batch 4); DEATH IS CUT — ratified.** Hydration decays
-  client-side at load (`effectiveHydration` in `src/lib/garden.ts`) and refreshes silently on
-  app foreground; `hydration <= 30` renders wilted (faded + 💧). The Settings "Pause Garden"
-  toggle freezes decay via the `set_garden_paused` RPC. `is_dead`/`death_timestamp`/
-  `revive_logs` are legacy — never build on them.
-- **The care loop is closed (Batch 5).** Tap a plant → Called/Texted/Hung out (+40/+20/+30) →
-  `GardenContext.logInteraction` → `log_interaction` RPC (weights live in the RPC's CASE;
-  `HYDRATION_WEIGHTS` client-side only mirrors them for display). Streaks are still not
-  updated by the RPC — later batch.
-- **Garden share (Batch 3):** 📸 in the TopBar → `captureRef(gardenContainerRef)` →
-  `expo-sharing`. Must stay a native view snapshot (Skia snapshot would miss the RN plant layer).
-- The onboarding first-friend seed (`Onboarding9CreateAccount`) requires `signUp` to return a
-  session — i.e. **email confirmation disabled** in the Supabase project. If it's enabled, the
-  seed is skipped with a console warning.
-- `GardenScreen` shows a spinner while loading and a "plant your first friend" prompt when the
-  load settles with zero plants.
-
----
+- **Everything in `docs/scope-plan.md` shipped** (2026-07-22): streaks (window-based, one SQL
+  roll-forward `roll_plant_streak`/`roll_link_streak`), local-first notifications + calendar
+  suggestions, the D1 economy ledger (idempotency-keyed minting, gem drops, restores), the
+  shop (self/gift/shared scopes), the memory layer (journal, photo walls, birthdays), the
+  multi-map registry + decor, linking (invites, shared streaks, D5 merge groups, Realtime,
+  push via the `send-push` Edge Function), nudges + haptic signatures + shared walls, time
+  capsules, Garden Pass entitlements (server-enforced caps + `revenuecat-webhook`), and the
+  Almanac/collections/live-ops layer. Batch-by-batch detail: `docs/source-of-truth/DATA-MODEL.md`.
+- **Friends + plants persist per user**; writes go through **`src/lib/garden.ts`** plus the
+  per-domain services (`economy.ts`, `shop.ts`, `memories.ts`, `links.ts`, `nudges.ts`,
+  `capsules.ts`, `almanac.ts`, `musicBox.ts`, `purchases.ts`). Client invariant:
+  `Plant.id === Friend.id`; `Plant.dbPlantId` exists only for attachment writes.
+- **`log_interaction` is the care loop's single write RPC** (SECURITY DEFINER, jsonb result):
+  hydration + streak satisfy + evolution + minting in one transaction; linked plants water
+  BOTH sides and share one streak on `garden_links`. Weights: hung out 50 / called 35 /
+  texted 15. Idempotent on `p_interaction_id` (offline queue `src/lib/logQueue.ts`).
+- **DEATH IS CUT — ratified.** `hydration <= 30` renders wilted; only streaks can lapse (and
+  can be restored for one period). `is_dead`/`death_timestamp`/`revive_logs`/
+  `update_plant_hydration` are legacy — never build on them.
+- **Art is design-pending by intent** (the user designs sprites): `attachmentCatalog.ts`,
+  `DecorSprite.DECOR_ASSETS`, themed tile maps, party/graft/capsule celebration sprites are
+  null/placeholder until assets land — mechanics all work today. Never generate this art
+  unprompted.
+- **Still needs user setup:** RevenueCat (app/products, `EXPO_PUBLIC_REVENUECAT_IOS_KEY`,
+  `REVENUECAT_WEBHOOK_SECRET` function secret) — the paywall degrades gracefully; the CallKit
+  auto-watering spike needs a physical device (manual-first shipped).
+- The onboarding first-friend seed + first watering require `signUp` to return a session —
+  i.e. **email confirmation disabled** in the Supabase project.
 
 ## Stack
 
@@ -174,6 +178,10 @@ docs/archive/               superseded notes — DO NOT TRUST, DO NOT UPDATE
 # Supabase
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
+
+# Optional — Garden Pass storefront (Batch 17). Absent = paywall degrades
+# gracefully ("purchases not available in this build").
+EXPO_PUBLIC_REVENUECAT_IOS_KEY=
 ```
 
 ---
@@ -185,7 +193,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 | `npx expo start --dev-client` | Metro only — the normal loop for JS changes |
 | `npx expo run:ios` | Full native build (10–15 min first time; after native/dep changes) |
 | `npx expo start --dev-client --clear` | Reset Metro cache |
-| `npx tsc --noEmit` | Typecheck — the **only** automated check (baseline: 6 errors) |
+| `npx tsc --noEmit` | Typecheck — the **only** automated check (baseline: 0 errors) |
 
 Metro runs on **http://localhost:8081**. Target: iOS Simulator, bundle id `com.rooted.app`.
 
@@ -233,3 +241,10 @@ Supporting (not canonical): [`docs/prd.md`](docs/prd.md) (product requirements),
   Both are deliberate.
 - **NEVER** log design iterations or completed edits to `docs/BACKLOG.md` unprompted. Instead,
   add backlog entries only when the user asks to record something; the backlog is theirs to curate.
+- **NEVER** assume `npx expo run:ios` applies a newly added config plugin — `ios/` is
+  prebuild-generated and stays stale until `npx expo prebuild -p ios` (or a manual
+  `ios/Rooted/Info.plist` patch). Missing usage-description keys crash at **boot**, not at
+  first use: expo-calendar needs BOTH the Calendar and Reminders strings
+  (`NSCalendars*`, `NSReminders*`); image-picker needs `NSPhotoLibraryUsageDescription`;
+  audio recording needs `NSMicrophoneUsageDescription`. All are declared in `app.json`
+  plugins now — keep them when regenerating.

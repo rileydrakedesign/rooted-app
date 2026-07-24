@@ -22,6 +22,8 @@ enum Tokens {
   static let ok = Color(rgb: 0x4CAF50)
   static let warn = Color(rgb: 0xFFC107)
   static let low = Color(rgb: 0xF44336)
+  static let streakGold = Color(rgb: 0xFFD700)
+  static let atRisk = Color(rgb: 0xFF9F66)
 
   static func ramp(_ pct: Double) -> Color {
     if pct >= 60 { return ok }
@@ -67,6 +69,13 @@ struct GardenPlant: Identifiable {
   let lastContactAt: Date?
   /// Display label, e.g. "weekly" (lowercased from the app's contactFrequency).
   let frequency: String
+  /// Streak state (Batch 7). windowDeadline lets the widget re-derive
+  /// at-risk forward in time with the same formula as streakAtRisk in
+  /// src/lib/garden.ts.
+  let streak: Int
+  let windowSatisfied: Bool
+  let windowDeadline: Date?
+  let cadenceDays: Double
 
   var spriteName: String {
     switch plantType {
@@ -102,6 +111,16 @@ struct GardenSnapshot {
     plants.sorted { hydration(of: $0, at: date) < hydration(of: $1, at: date) }
   }
 
+  /// Mirrors streakAtRisk in src/lib/garden.ts: unsatisfied window with
+  /// less than max(25% of the period, 1 day) remaining. Never while paused.
+  func streakAtRisk(_ plant: GardenPlant, at date: Date) -> Bool {
+    guard !isPaused, !plant.windowSatisfied, plant.streak > 0,
+          let deadline = plant.windowDeadline else { return false }
+    let remaining = deadline.timeIntervalSince(date)
+    let threshold = max(plant.cadenceDays * 86_400 * 0.25, 86_400)
+    return remaining > 0 && remaining <= threshold
+  }
+
   static func load() -> GardenSnapshot {
     let defaults = UserDefaults(suiteName: APP_GROUP)
     let iso = ISO8601DateFormatter()
@@ -122,7 +141,11 @@ struct GardenSnapshot {
         hydration: (row["hydration"] as? NSNumber)?.doubleValue ?? 100,
         decayRatePerDay: (row["decayRatePerDay"] as? NSNumber)?.doubleValue ?? 100 / 7,
         lastContactAt: parse(row["lastContactAt"] as? String),
-        frequency: (row["frequency"] as? String ?? "weekly").lowercased()
+        frequency: (row["frequency"] as? String ?? "weekly").lowercased(),
+        streak: (row["streak"] as? NSNumber)?.intValue ?? 0,
+        windowSatisfied: (row["windowSatisfied"] as? NSNumber)?.boolValue ?? false,
+        windowDeadline: parse(row["windowDeadline"] as? String),
+        cadenceDays: (row["cadenceDays"] as? NSNumber)?.doubleValue ?? 7
       )
     }
     return GardenSnapshot(
@@ -327,6 +350,19 @@ struct SmallView: View {
             .foregroundStyle(Tokens.inkMuted)
             .lineLimit(1)
             .padding(.top, 3)
+          if entry.snapshot.streakAtRisk(plant, at: entry.date) {
+            Text("STREAK AT RISK")
+              .font(pixelFont(13))
+              .foregroundStyle(Tokens.atRisk)
+              .lineLimit(1)
+              .padding(.top, 1)
+          } else if plant.streak > 0 {
+            Text(streakUnitLabel(plant))
+              .font(pixelFont(13))
+              .foregroundStyle(Tokens.streakGold)
+              .lineLimit(1)
+              .padding(.top, 1)
+          }
         }
         .widgetURL(URL(string: "rooted://plant/\(plant.id)"))
 
@@ -359,13 +395,26 @@ struct SlotView: View {
           .foregroundStyle(Tokens.ink)
           .lineLimit(1)
         HydrationBar(pct: pct, height: 6)
-        Text(lastContactLabel(plant.lastContactAt, now: date))
+        Text(slotFooter)
           .font(pixelFont(12))
-          .foregroundStyle(Tokens.inkMuted)
+          .foregroundStyle(snapshot.streakAtRisk(plant, at: date) ? Tokens.atRisk : Tokens.inkMuted)
           .lineLimit(1)
       }
     }
   }
+
+  /// Streak (or at-risk) when present; falls back to last-contact age.
+  private var slotFooter: String {
+    if snapshot.streakAtRisk(plant, at: date) { return "AT RISK" }
+    if plant.streak > 0 { return streakUnitLabel(plant) }
+    return lastContactLabel(plant.lastContactAt, now: date)
+  }
+}
+
+/// "3W STREAK" / "3F STREAK" / "3M STREAK" by cadence.
+func streakUnitLabel(_ plant: GardenPlant) -> String {
+  let unit = plant.cadenceDays >= 30 ? "M" : plant.cadenceDays >= 14 ? "F" : "W"
+  return "\(plant.streak)\(unit) STREAK"
 }
 
 struct GhostSlot: View {

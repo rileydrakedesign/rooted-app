@@ -1,7 +1,5 @@
-// Auth Screens
-export { default as WelcomeScreen } from './WelcomeScreen';
+// Auth Screens (signup lives in the onboarding flow — Onboarding9CreateAccount)
 export { default as LoginScreen } from './LoginScreen';
-export { default as SignUpScreen } from './SignUpScreen';
 
 // Main Screens
 export { default as GardenScreen } from './GardenScreen';

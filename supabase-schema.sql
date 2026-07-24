@@ -73,8 +73,12 @@ CREATE TABLE public.users (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Settings
-  notifications_enabled BOOLEAN DEFAULT true,
-  notification_time TIME DEFAULT '08:00:00',
+  notifications_enabled BOOLEAN DEFAULT true,  -- legacy; superseded by notification_prefs
+  notification_time TIME DEFAULT '08:00:00',   -- legacy; superseded by notification_prefs
+  -- Batch 8: per-category toggles + digest hour for the client-scheduled
+  -- local notification engine (src/lib/notifications.ts). No server push.
+  notification_prefs JSONB NOT NULL DEFAULT
+    '{"digest": true, "digestHour": 9, "atRisk": true, "wilt": true, "suggested": true, "birthdays": true}'::jsonb,
   auto_detection_enabled BOOLEAN DEFAULT true,
 
   -- Premium status
@@ -133,10 +137,20 @@ CREATE TABLE public.plants (
   death_timestamp TIMESTAMPTZ,
 
   -- Evolution & Progress
+  -- Evolution advances on lifetime interactions (young ≥ 5, mature ≥ 20)
+  -- inside log_interaction and never regresses (decoupled from streaks).
   evolution_stage evolution_stage DEFAULT 'sprout',
   streak_count INTEGER DEFAULT 0,
   total_interactions INTEGER DEFAULT 0,
   total_xp INTEGER DEFAULT 0,
+
+  -- Streak window state (Batch 7 — see roll_plant_streak for the math)
+  streak_window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+  streak_window_satisfied BOOLEAN NOT NULL DEFAULT false,
+  streak_best INTEGER NOT NULL DEFAULT 0,
+  streak_broken_at TIMESTAMPTZ,          -- deadline the streak broke at; arms the restore window
+  streak_broken_count INTEGER NOT NULL DEFAULT 0, -- streak value at break (what a restore brings back)
+  prestige_level INTEGER NOT NULL DEFAULT 0,      -- milestones past the ×2.0 tier cap
 
   -- Grid position
   grid_position_x INTEGER NOT NULL,
@@ -219,8 +233,10 @@ CREATE TABLE public.decorative_items (
   is_premium BOOLEAN DEFAULT false,
   unlocked_at TIMESTAMPTZ DEFAULT NOW(),
 
-  CONSTRAINT decorative_items_grid_x_check CHECK (grid_position_x >= 0 AND grid_position_x <= 5),
-  CONSTRAINT decorative_items_grid_y_check CHECK (grid_position_y >= 0 AND grid_position_y <= 5)
+  -- Widened to match plants (Batch 6); live constraint names are
+  -- decorative_items_grid_position_x_check / _y_check
+  CONSTRAINT decorative_items_grid_x_check CHECK (grid_position_x >= 0 AND grid_position_x <= 9),
+  CONSTRAINT decorative_items_grid_y_check CHECK (grid_position_y >= 0 AND grid_position_y <= 9)
 );
 
 -- ----------------------------------------------------------------------------
@@ -501,7 +517,124 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ----------------------------------------------------------------------------
--- Function: Log interaction and restore hydration
+-- Streak machinery (Batch 7). ONE roll-forward function owns the window
+-- math; sync_streaks() and log_interaction() both call it. No cron — lazy
+-- evaluation on garden load and at log time.
+-- ----------------------------------------------------------------------------
+
+-- The streak clock: one period per cadence (decay rate is separate).
+CREATE OR REPLACE FUNCTION public.cadence_period(p_frequency contact_frequency)
+RETURNS interval
+LANGUAGE sql IMMUTABLE
+AS $$
+  SELECT CASE p_frequency
+    WHEN 'weekly' THEN interval '7 days'
+    WHEN 'biweekly' THEN interval '14 days'
+    WHEN 'monthly' THEN interval '30 days'
+  END;
+$$;
+
+-- Streak tier multiplier (ratified defaults: 1–2 ×1.0 · 3–4 ×1.25 ·
+-- 5–8 ×1.5 · 9–12 ×1.75 · 13+ ×2.0 cap). Consumed by the Batch 9 mint.
+CREATE OR REPLACE FUNCTION public.streak_multiplier(p_streak integer)
+RETURNS numeric
+LANGUAGE sql IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN p_streak >= 13 THEN 2.0
+    WHEN p_streak >= 9 THEN 1.75
+    WHEN p_streak >= 5 THEN 1.5
+    WHEN p_streak >= 3 THEN 1.25
+    ELSE 1.0
+  END;
+$$;
+
+-- Advance a plant's streak window up to p_to, committing lapses (only the
+-- streak resets — spec §1). Time freezes at paused_at while paused.
+CREATE OR REPLACE FUNCTION public.roll_plant_streak(p_plant_id uuid, p_to timestamptz)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_period interval;
+  v_window_start timestamptz;
+  v_satisfied boolean;
+  v_streak integer;
+  v_broken_at timestamptz;
+  v_broken_count integer;
+  v_effective_to timestamptz;
+  v_paused boolean;
+  v_paused_at timestamptz;
+BEGIN
+  SELECT p.streak_window_start, p.streak_window_satisfied, p.streak_count,
+         p.streak_broken_at, p.streak_broken_count,
+         cadence_period(f.contact_frequency), u.is_paused, u.paused_at
+  INTO v_window_start, v_satisfied, v_streak, v_broken_at, v_broken_count,
+       v_period, v_paused, v_paused_at
+  FROM public.plants p
+  JOIN public.friends f ON f.id = p.friend_id
+  JOIN public.users u ON u.id = f.user_id
+  WHERE p.id = p_plant_id
+  FOR UPDATE OF p;
+
+  IF NOT FOUND THEN RETURN; END IF;
+
+  v_effective_to := CASE WHEN v_paused AND v_paused_at IS NOT NULL
+                         THEN LEAST(p_to, v_paused_at) ELSE p_to END;
+
+  WHILE v_window_start + v_period <= v_effective_to LOOP
+    IF v_satisfied THEN
+      v_window_start := v_window_start + v_period;
+      v_satisfied := false;
+    ELSE
+      IF v_streak > 0 THEN
+        v_broken_at := v_window_start + v_period;
+        v_broken_count := v_streak;
+        v_streak := 0;
+      END IF;
+      v_window_start := v_window_start + v_period;
+    END IF;
+  END LOOP;
+
+  UPDATE public.plants
+  SET streak_window_start = v_window_start,
+      streak_window_satisfied = v_satisfied,
+      streak_count = v_streak,
+      streak_broken_at = v_broken_at,
+      streak_broken_count = v_broken_count
+  WHERE id = p_plant_id;
+END;
+$$;
+
+-- Roll every plant of the caller forward. Called on garden load and before
+-- widget sync (client: fetchGarden in src/lib/garden.ts).
+CREATE OR REPLACE FUNCTION public.sync_streaks()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_plant RECORD;
+BEGIN
+  FOR v_plant IN
+    SELECT p.id FROM public.plants p
+    JOIN public.friends f ON f.id = p.friend_id
+    WHERE f.user_id = auth.uid()
+  LOOP
+    PERFORM roll_plant_streak(v_plant.id, now());
+  END LOOP;
+END;
+$$;
+
+-- ----------------------------------------------------------------------------
+-- Function: Log interaction — hydration + streak + evolution + MINTING (v3)
+-- SECURITY DEFINER with explicit ownership checks (p_user_id must be
+-- auth.uid() and own the friend). Returns jsonb: interaction_id,
+-- new_hydration, streak, full_mint, points_minted, multiplier, gems_minted,
+-- points_balance, gems_balance. See migration batch9_economy_core for the
+-- authoritative body (mint keys: mint:<friend_id>:<date>,
+-- mint:trickle:<interaction_id>, gem:tierup/prestige/first-call).
+-- Weights: manual ("hung out") 50 / call 35 / text 15. Backdating 48 h via
+-- p_occurred_at. Idempotent on p_interaction_id.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION log_interaction(
   p_user_id UUID,
@@ -509,75 +642,201 @@ CREATE OR REPLACE FUNCTION log_interaction(
   p_interaction_type interaction_type,
   p_hydration_amount NUMERIC DEFAULT NULL,
   p_note TEXT DEFAULT NULL,
-  p_was_auto_detected BOOLEAN DEFAULT false
+  p_was_auto_detected BOOLEAN DEFAULT false,
+  p_interaction_id UUID DEFAULT NULL,
+  p_occurred_at TIMESTAMPTZ DEFAULT NULL
 )
-RETURNS UUID AS $$
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
 DECLARE
   v_interaction_id UUID;
   v_plant_id UUID;
   v_hydration_to_restore NUMERIC;
   v_current_hydration NUMERIC;
   v_new_hydration NUMERIC;
+  v_occurred timestamptz;
+  v_total integer;
+  v_satisfied boolean;
+  v_streak integer;
+  v_prestige_before integer;
+  v_prestige_after integer;
+  v_mult numeric;
+  v_points integer := 0;
+  v_gems integer := 0;
+  v_full_mint boolean := false;
+  v_year integer;
 BEGIN
-  -- Determine hydration amount based on interaction type
+  IF auth.uid() IS NULL OR p_user_id <> auth.uid() THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.friends WHERE id = p_friend_id AND user_id = p_user_id) THEN
+    RAISE EXCEPTION 'friend not found';
+  END IF;
+
+  IF p_interaction_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM public.interactions WHERE id = p_interaction_id
+  ) THEN
+    RETURN jsonb_build_object('interaction_id', p_interaction_id, 'replayed', true);
+  END IF;
+
+  v_occurred := LEAST(now(), GREATEST(COALESCE(p_occurred_at, now()), now() - interval '48 hours'));
+
   v_hydration_to_restore := COALESCE(
     p_hydration_amount,
     CASE p_interaction_type
-      WHEN 'call' THEN 40
-      WHEN 'text' THEN 20
-      WHEN 'manual' THEN 30
+      WHEN 'manual' THEN 50
+      WHEN 'call' THEN 35
+      WHEN 'text' THEN 15
     END
   );
 
-  -- Get plant ID
-  SELECT id INTO v_plant_id
-  FROM public.plants
-  WHERE friend_id = p_friend_id;
+  SELECT id INTO v_plant_id FROM public.plants WHERE friend_id = p_friend_id;
 
-  -- Calculate current hydration
   v_current_hydration := calculate_current_hydration(v_plant_id);
-
-  -- Calculate new hydration (cap at 100)
   v_new_hydration := LEAST(100, v_current_hydration + v_hydration_to_restore);
 
-  -- Update plant
   UPDATE public.plants
   SET
     current_hydration = v_new_hydration,
     last_hydration_update = NOW(),
     total_interactions = total_interactions + 1,
-    total_xp = total_xp + 10, -- 10 XP per interaction
-    is_dead = false, -- Revive if was dead
-    death_timestamp = NULL,
+    total_xp = total_xp + 10,
     updated_at = NOW()
-  WHERE id = v_plant_id;
+  WHERE id = v_plant_id
+  RETURNING total_interactions INTO v_total;
 
-  -- Insert interaction record
+  UPDATE public.plants
+  SET evolution_stage = CASE
+    WHEN v_total >= 20 THEN 'mature'::evolution_stage
+    WHEN v_total >= 5 THEN 'young'::evolution_stage
+    ELSE 'sprout'::evolution_stage
+  END
+  WHERE id = v_plant_id
+    AND evolution_stage IS DISTINCT FROM (CASE
+      WHEN v_total >= 20 THEN 'mature'::evolution_stage
+      WHEN v_total >= 5 THEN 'young'::evolution_stage
+      ELSE 'sprout'::evolution_stage END);
+
+  PERFORM roll_plant_streak(v_plant_id, v_occurred);
+
+  SELECT streak_window_satisfied, streak_count, prestige_level
+  INTO v_satisfied, v_streak, v_prestige_before
+  FROM public.plants WHERE id = v_plant_id;
+  v_prestige_after := v_prestige_before;
+
+  IF NOT v_satisfied THEN
+    v_streak := v_streak + 1;
+    v_prestige_after := v_prestige_before +
+      CASE WHEN v_streak >= 13 AND (v_streak - 13) % 4 = 0 THEN 1 ELSE 0 END;
+    UPDATE public.plants
+    SET streak_window_satisfied = true,
+        streak_count = v_streak,
+        streak_best = GREATEST(streak_best, v_streak),
+        prestige_level = v_prestige_after
+    WHERE id = v_plant_id;
+  END IF;
+
+  PERFORM roll_plant_streak(v_plant_id, now());
+
   INSERT INTO public.interactions (
-    user_id,
-    friend_id,
-    interaction_type,
-    hydration_restored,
-    note,
-    was_auto_detected
+    id, user_id, friend_id, interaction_type,
+    hydration_restored, note, was_auto_detected, created_at
   ) VALUES (
-    p_user_id,
-    p_friend_id,
-    p_interaction_type,
-    v_hydration_to_restore,
-    p_note,
-    p_was_auto_detected
+    COALESCE(p_interaction_id, extensions.uuid_generate_v4()),
+    p_user_id, p_friend_id, p_interaction_type,
+    v_hydration_to_restore, p_note, p_was_auto_detected, v_occurred
   )
   RETURNING id INTO v_interaction_id;
 
-  -- Update user total interactions
   UPDATE public.users
   SET total_interactions = total_interactions + 1
   WHERE id = p_user_id;
 
-  RETURN v_interaction_id;
+  v_mult := streak_multiplier(v_streak);
+
+  -- Full mint once per plant per day; extras trickle 5 (default #6).
+  INSERT INTO public.ledger_entries
+    (user_id, currency, amount, reason, source_type, source_id, idempotency_key, metadata)
+  VALUES (
+    p_user_id, 'points',
+    round(v_hydration_to_restore * v_mult)::integer,
+    'interaction_mint', 'interaction', v_interaction_id,
+    'mint:' || p_friend_id || ':' || to_char(v_occurred AT TIME ZONE 'UTC', 'YYYY-MM-DD'),
+    jsonb_build_object('type', p_interaction_type, 'base', v_hydration_to_restore, 'multiplier', v_mult)
+  )
+  ON CONFLICT (idempotency_key) DO NOTHING;
+
+  IF FOUND THEN
+    v_full_mint := true;
+    v_points := round(v_hydration_to_restore * v_mult)::integer;
+  ELSE
+    INSERT INTO public.ledger_entries
+      (user_id, currency, amount, reason, source_type, source_id, idempotency_key)
+    VALUES (
+      p_user_id, 'points', 5, 'same_day_trickle', 'trickle', v_interaction_id,
+      'mint:trickle:' || v_interaction_id
+    )
+    ON CONFLICT (idempotency_key) DO NOTHING;
+    IF FOUND THEN v_points := 5; END IF;
+  END IF;
+
+  -- Gem drops (default #7), idempotency-keyed against farming.
+  IF NOT v_satisfied AND v_streak IN (3, 5, 9, 13) THEN
+    INSERT INTO public.ledger_entries
+      (user_id, currency, amount, reason, source_type, source_id, idempotency_key)
+    VALUES (
+      p_user_id, 'gems', 3, 'streak_tier_up', 'tier_up', p_friend_id,
+      'gem:tierup:' || p_friend_id || ':' || v_streak
+    )
+    ON CONFLICT (idempotency_key) DO NOTHING;
+    IF FOUND THEN v_gems := v_gems + 3; END IF;
+  END IF;
+
+  IF v_prestige_after > v_prestige_before THEN
+    INSERT INTO public.ledger_entries
+      (user_id, currency, amount, reason, source_type, source_id, idempotency_key)
+    VALUES (
+      p_user_id, 'gems', 5, 'prestige_milestone', 'prestige', p_friend_id,
+      'gem:prestige:' || p_friend_id || ':' || v_prestige_after
+    )
+    ON CONFLICT (idempotency_key) DO NOTHING;
+    IF FOUND THEN v_gems := v_gems + 5; END IF;
+  END IF;
+
+  IF p_interaction_type = 'call' THEN
+    v_year := extract(year FROM v_occurred)::integer;
+    INSERT INTO public.ledger_entries
+      (user_id, currency, amount, reason, source_type, source_id, idempotency_key)
+    VALUES (
+      p_user_id, 'gems', 2, 'first_call_of_year', 'first_call_year', p_friend_id,
+      'gem:first-call:' || p_friend_id || ':' || v_year
+    )
+    ON CONFLICT (idempotency_key) DO NOTHING;
+    IF FOUND THEN v_gems := v_gems + 2; END IF;
+  END IF;
+
+  RETURN (
+    SELECT jsonb_build_object(
+      'interaction_id', v_interaction_id,
+      'new_hydration', v_new_hydration,
+      'streak', v_streak,
+      'full_mint', v_full_mint,
+      'points_minted', v_points,
+      'multiplier', v_mult,
+      'gems_minted', v_gems,
+      'points_balance', u.points_balance,
+      'gems_balance', u.gems_balance
+    )
+    FROM public.users u WHERE u.id = p_user_id
+  );
 END;
-$$ LANGUAGE plpgsql;
+$$;
+
+REVOKE ALL ON FUNCTION log_interaction(uuid, uuid, interaction_type, numeric, text, boolean, uuid, timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION log_interaction(uuid, uuid, interaction_type, numeric, text, boolean, uuid, timestamptz) TO authenticated, service_role;
 
 -- ----------------------------------------------------------------------------
 -- PRODUCT DECISION (ratified 2026-07-20): plant DEATH is CUT — wilt only.
@@ -604,8 +863,12 @@ BEGIN
     WHERE id = auth.uid() AND NOT is_paused;
   ELSE
     IF v_paused_at IS NOT NULL THEN
+      -- Unpause shifts every clock by the pause duration: hydration decay,
+      -- the streak window, and the restore window (Batch 7).
       UPDATE public.plants p
-      SET last_hydration_update = p.last_hydration_update + (now() - v_paused_at)
+      SET last_hydration_update = p.last_hydration_update + (now() - v_paused_at),
+          streak_window_start = p.streak_window_start + (now() - v_paused_at),
+          streak_broken_at = p.streak_broken_at + (now() - v_paused_at)
       FROM public.friends f
       WHERE f.id = p.friend_id AND f.user_id = auth.uid();
     END IF;
@@ -713,8 +976,13 @@ CREATE OR REPLACE FUNCTION update_plant_decay_rate_on_frequency_change()
 RETURNS TRIGGER AS $$
 BEGIN
   IF OLD.contact_frequency IS DISTINCT FROM NEW.contact_frequency THEN
+    -- Cadence change recomputes the streak window at the LATER of old/new
+    -- deadlines (Batch 7) — never insta-breaks a streak.
     UPDATE public.plants
-    SET decay_rate_per_day = calculate_decay_rate(NEW.contact_frequency)
+    SET decay_rate_per_day = calculate_decay_rate(NEW.contact_frequency),
+        streak_window_start = streak_window_start +
+          GREATEST(cadence_period(OLD.contact_frequency)
+                   - cadence_period(NEW.contact_frequency), interval '0')
     WHERE friend_id = NEW.id;
   END IF;
 
@@ -743,6 +1011,14 @@ CREATE TABLE IF NOT EXISTS public.artifact_templates (
   sort_order INTEGER DEFAULT 0
 );
 
+-- Read-only reference data (Batch 6): RLS on, SELECT for authenticated, no
+-- write policies — all writes happen via migrations.
+ALTER TABLE public.artifact_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated users can read artifact templates"
+  ON public.artifact_templates FOR SELECT
+  TO authenticated
+  USING (true);
+
 -- Insert artifact templates
 INSERT INTO public.artifact_templates (artifact_type, artifact_category, display_name, description, required_streak_days, required_avg_hydration, sort_order) VALUES
   -- Plant-level artifacts
@@ -763,21 +1039,8 @@ INSERT INTO public.artifact_templates (artifact_type, artifact_category, display
 -- HELPFUL VIEWS
 -- ============================================================================
 
--- View: User's garden overview
-CREATE OR REPLACE VIEW user_garden_overview AS
-SELECT
-  u.id AS user_id,
-  u.display_name,
-  COUNT(DISTINCT f.id) AS total_friends,
-  COUNT(DISTINCT CASE WHEN p.is_dead = false THEN p.id END) AS alive_plants,
-  COUNT(DISTINCT CASE WHEN p.is_dead = true THEN p.id END) AS dead_plants,
-  AVG(CASE WHEN p.is_dead = false THEN p.current_hydration END) AS avg_hydration,
-  COUNT(i.id) AS total_interactions_count
-FROM public.users u
-LEFT JOIN public.friends f ON f.user_id = u.id
-LEFT JOIN public.plants p ON p.friend_id = f.id
-LEFT JOIN public.interactions i ON i.user_id = u.id
-GROUP BY u.id, u.display_name;
+-- user_garden_overview was DROPPED in Batch 6: its cross-joined interaction
+-- counts were inflated and nothing read it.
 
 -- ============================================================================
 -- COMMENTS FOR DOCUMENTATION
@@ -796,6 +1059,406 @@ COMMENT ON FUNCTION calculate_current_hydration IS 'Calculate plant hydration ba
 COMMENT ON FUNCTION update_plant_hydration IS 'Update plant hydration and death status';
 COMMENT ON FUNCTION log_interaction IS 'Log a friend interaction and restore plant hydration';
 COMMENT ON FUNCTION calculate_decay_rate IS 'Calculate daily decay rate based on contact frequency';
+
+
+-- ============================================================================
+-- BATCH 9 — ECONOMY CORE (decision D1)
+-- Append-only ledger is the truth; users.points_balance/gems_balance are
+-- trigger-maintained caches. All writes via SECURITY DEFINER RPCs with
+-- deterministic idempotency keys (no double-mint under replay).
+-- ============================================================================
+
+CREATE TABLE public.ledger_entries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  currency TEXT NOT NULL CHECK (currency IN ('points', 'gems')),
+  amount INTEGER NOT NULL,               -- signed: mint > 0, spend < 0
+  reason TEXT NOT NULL,
+  source_type TEXT NOT NULL,             -- interaction | trickle | tier_up | prestige | first_call_year | seasonal | restore | purchase | gift | milestone
+  source_id UUID,
+  idempotency_key TEXT UNIQUE,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_ledger_user_created ON public.ledger_entries (user_id, created_at DESC);
+
+ALTER TABLE public.ledger_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own ledger" ON public.ledger_entries
+  FOR SELECT TO authenticated USING (user_id = auth.uid());
+
+-- Cached balances on users (also: points_balance/gems_balance INTEGER NOT
+-- NULL DEFAULT 0 CHECK >= 0 — see users table, added by migration).
+
+CREATE OR REPLACE FUNCTION public.apply_ledger_entry()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.currency = 'points' THEN
+    UPDATE public.users SET points_balance = points_balance + NEW.amount WHERE id = NEW.user_id;
+  ELSE
+    UPDATE public.users SET gems_balance = gems_balance + NEW.amount WHERE id = NEW.user_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER ledger_apply_balance
+  AFTER INSERT ON public.ledger_entries
+  FOR EACH ROW EXECUTE FUNCTION public.apply_ledger_entry();
+
+-- Tier index 1-5 (restore pricing)
+CREATE OR REPLACE FUNCTION public.streak_tier_index(p_streak integer)
+RETURNS integer
+LANGUAGE sql IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN p_streak >= 13 THEN 5
+    WHEN p_streak >= 9 THEN 4
+    WHEN p_streak >= 5 THEN 3
+    WHEN p_streak >= 3 THEN 2
+    ELSE 1
+  END;
+$$;
+
+-- Streak restore: the economy's first sink (spec §1). Valid for one cadence
+-- period after the break; price = 100 pts × broken tier × 2^(restores in
+-- 90 d) or flat 5 gems; restores the count and RE-ARMS the window without
+-- satisfying it (the restore only counts if you follow through).
+CREATE OR REPLACE FUNCTION public.restore_streak(p_friend_id uuid, p_currency text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_plant_id uuid;
+  v_period interval;
+  v_broken_at timestamptz;
+  v_broken_count integer;
+  v_prior_restores integer;
+  v_price integer;
+  v_points integer;
+  v_gems integer;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+
+  SELECT p.id, cadence_period(f.contact_frequency)
+  INTO v_plant_id, v_period
+  FROM public.plants p
+  JOIN public.friends f ON f.id = p.friend_id
+  WHERE p.friend_id = p_friend_id AND f.user_id = auth.uid();
+
+  IF v_plant_id IS NULL THEN RAISE EXCEPTION 'friend not found'; END IF;
+  IF p_currency NOT IN ('points', 'gems') THEN RAISE EXCEPTION 'invalid currency'; END IF;
+
+  PERFORM roll_plant_streak(v_plant_id, now());
+
+  SELECT streak_broken_at, streak_broken_count
+  INTO v_broken_at, v_broken_count
+  FROM public.plants WHERE id = v_plant_id;
+
+  IF v_broken_at IS NULL OR v_broken_count <= 0 THEN
+    RAISE EXCEPTION 'no broken streak to restore';
+  END IF;
+  IF now() >= v_broken_at + v_period THEN
+    RAISE EXCEPTION 'restore window closed';
+  END IF;
+
+  SELECT count(*) INTO v_prior_restores
+  FROM public.ledger_entries
+  WHERE user_id = auth.uid() AND source_type = 'restore'
+    AND source_id = p_friend_id AND created_at > now() - interval '90 days';
+
+  IF p_currency = 'points' THEN
+    v_price := 100 * streak_tier_index(v_broken_count) * power(2, v_prior_restores)::integer;
+  ELSE
+    v_price := 5;
+  END IF;
+
+  SELECT points_balance, gems_balance INTO v_points, v_gems
+  FROM public.users WHERE id = auth.uid();
+
+  IF (p_currency = 'points' AND v_points < v_price)
+     OR (p_currency = 'gems' AND v_gems < v_price) THEN
+    RAISE EXCEPTION 'insufficient balance';
+  END IF;
+
+  INSERT INTO public.ledger_entries
+    (user_id, currency, amount, reason, source_type, source_id, idempotency_key, metadata)
+  VALUES (
+    auth.uid(), p_currency, -v_price, 'streak_restore', 'restore', p_friend_id,
+    'restore:' || p_friend_id || ':' || to_char(v_broken_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS'),
+    jsonb_build_object('restored_streak', v_broken_count, 'prior_restores_90d', v_prior_restores)
+  );
+
+  UPDATE public.plants
+  SET streak_count = v_broken_count,
+      streak_best = GREATEST(streak_best, v_broken_count),
+      streak_window_start = now(),
+      streak_window_satisfied = false,
+      streak_broken_at = NULL,
+      streak_broken_count = 0
+  WHERE id = v_plant_id;
+
+  RETURN (
+    SELECT jsonb_build_object(
+      'restored_streak', v_broken_count,
+      'price', v_price,
+      'currency', p_currency,
+      'points_balance', u.points_balance,
+      'gems_balance', u.gems_balance
+    )
+    FROM public.users u WHERE u.id = auth.uid()
+  );
+EXCEPTION
+  WHEN unique_violation THEN
+    RAISE EXCEPTION 'streak already restored';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.restore_streak(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.restore_streak(uuid, text) TO authenticated, service_role;
+
+
+-- ============================================================================
+-- BATCH 10 — SHOP v1 (spec §3, Self scope)
+-- Catalog / inventory / attachments + atomic purchase RPC. NOT reusing
+-- artifact_templates — that stays reserved for Batch 18 collections.
+-- ============================================================================
+
+CREATE TABLE public.shop_items (
+  sku TEXT PRIMARY KEY,
+  category TEXT NOT NULL CHECK (category IN ('pot', 'nameplate', 'accessory', 'bloom', 'garden_theme', 'decor')),
+  scope TEXT NOT NULL DEFAULT 'self' CHECK (scope IN ('self', 'gift', 'shared')),
+  display_name TEXT NOT NULL,
+  description TEXT,
+  price_points INTEGER CHECK (price_points > 0),
+  price_gems INTEGER CHECK (price_gems > 0),
+  asset_key TEXT NOT NULL,               -- client sprite registry key (src/data/attachmentCatalog.ts)
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  sort INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  -- both prices NULL = unpurchasable (milestone/prestige-only item)
+);
+ALTER TABLE public.shop_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone authenticated can read the catalog" ON public.shop_items
+  FOR SELECT TO authenticated USING (true);
+
+CREATE TABLE public.user_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  sku TEXT NOT NULL REFERENCES public.shop_items(sku),
+  acquired_via TEXT NOT NULL DEFAULT 'purchase' CHECK (acquired_via IN ('purchase', 'gift', 'milestone')),
+  ledger_entry_id UUID REFERENCES public.ledger_entries(id),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,  -- gift sender etc. (Batch 15)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, sku)
+);
+ALTER TABLE public.user_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own inventory" ON public.user_items
+  FOR SELECT TO authenticated USING (user_id = auth.uid());
+
+CREATE TABLE public.plant_attachments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  plant_id UUID NOT NULL REFERENCES public.plants(id) ON DELETE CASCADE,
+  sku TEXT NOT NULL REFERENCES public.shop_items(sku),
+  slot TEXT NOT NULL,                    -- = category for v1 (one pot, one accessory, …)
+  position JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (plant_id, slot)
+);
+ALTER TABLE public.plant_attachments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own plant attachments" ON public.plant_attachments
+  FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.plants p JOIN public.friends f ON f.id = p.friend_id
+    WHERE p.id = plant_id AND f.user_id = auth.uid()
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.plants p JOIN public.friends f ON f.id = p.friend_id
+    WHERE p.id = plant_id AND f.user_id = auth.uid()
+  ));
+
+-- Atomic purchase: ledger spend + inventory grant, key purchase:<user>:<sku>.
+-- SECURITY DEFINER; self-scope only until Batch 15 (gift/shared). See
+-- migration batch10_shop_v1 for the authoritative body.
+-- purchase_item(p_sku text, p_currency text DEFAULT NULL) RETURNS jsonb
+--   {sku, price, currency, points_balance, gems_balance}
+-- Launch catalog: 12 seeded SKUs (pots/nameplates/accessories/blooms), incl.
+-- the unpurchasable prestige 'pot-golden-ring'.
+
+
+-- ============================================================================
+-- BATCH 11 — MEMORY LAYER, solo half (spec §6)
+-- ============================================================================
+
+-- friends.birthday DATE (year optional by convention — 1904 = year unknown)
+-- was added to the friends table by migration batch11_memory_layer.
+
+CREATE TABLE public.journal_entries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES public.friends(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL DEFAULT 'note' CHECK (kind IN ('note', 'date', 'gift_idea', 'milestone')),
+  body TEXT NOT NULL,
+  event_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_journal_friend ON public.journal_entries (friend_id, created_at DESC);
+ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own journal" ON public.journal_entries
+  FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+CREATE TABLE public.photos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES public.friends(id) ON DELETE CASCADE,
+  interaction_id UUID REFERENCES public.interactions(id) ON DELETE SET NULL,
+  storage_path TEXT NOT NULL,            -- memories/<user_id>/<friend_id>/<uuid>.jpg
+  taken_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_shared BOOLEAN NOT NULL DEFAULT false,  -- designed now for Batch 14's shared wall
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_photos_friend ON public.photos (friend_id, taken_at DESC);
+ALTER TABLE public.photos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own photos" ON public.photos
+  FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+-- Storage: private bucket 'memories', RLS scoped to the auth.uid() path
+-- prefix: (storage.foldername(name))[1] = auth.uid()::text.
+
+
+-- ============================================================================
+-- BATCH 13 — LINKING CORE (spec §4). Cross-user access ONLY via SECURITY
+-- DEFINER RPCs with explicit membership checks. See migrations
+-- batch13_linking_core + batch13_linked_log_interaction for authoritative
+-- bodies.
+-- ============================================================================
+-- Tables:
+--   link_invites  (code UNIQUE, inviter_user_id/friend_id, status, expires_at
+--                  DEFAULT now()+14d) — inviter-only SELECT RLS.
+--   garden_links  (user_a/b, friend_a/b_id, status, linked_at + THE shared
+--                  streak state: window_start/satisfied, streak_count/best,
+--                  broken_at/count) — member SELECT RLS. Per-plant streak
+--                  fields are display mirrors for linked plants.
+--   link_events   (link_id, logger_user_id, interaction_id, interaction_type,
+--                  merge_group_id, occurred_at) — member SELECT RLS; in the
+--                  supabase_realtime publication (live watering moments).
+--   push_tokens   (user_id, token, platform) — owner ALL RLS.
+-- Functions:
+--   link_for_friend(user, friend) — the active link, if any (STABLE).
+--   roll_link_streak(link, to)    — shared-streak roll-forward; period = the
+--       LONGER of the two cadences; clock freezes if EITHER member paused;
+--       mirrors result onto both plants.
+--   sync_streaks()                — now rolls links first, then solo plants.
+--   create_link_invite(friend)    — 8-char single-use code; supersedes prior
+--       pending invites for that friend.
+--   accept_link_invite(code, plant_type, frequency, grid_x, grid_y,
+--       existing_friend_id) — creates/reuses the reciprocal friend+plant,
+--       marries streaks (pair inherits the LONGER current streak), marks the
+--       invite accepted. Declines/expiry never surface (silent asymmetry).
+--   log_interaction v4            — linked branch (D5): a linked log waters
+--       BOTH plants + satisfies the SHARED streak once per merge group; a
+--       partner's same-type log on the same UTC day JOINS the merge group
+--       (no double effects) but still mints for that user (daily mint key ⇒
+--       once per user per merge group; co-op out-earns solo).
+--   restore_streak v2             — link-aware: restores the shared streak
+--       and mirrors to both plants.
+-- Edge Function: send-push — dumb Expo push sender (service-role token
+--   lookup); all decisions stay client/RPC-side.
+
+
+-- ============================================================================
+-- BATCH 14 — COMMUNICATION LAYER (spec §4). See migration
+-- batch14_communication_layer.
+-- ============================================================================
+-- nudges (link_id, sender_user_id, type sun|rain|butterfly|leaf|ladybug|
+--   shimmer|shake|shimmy, payload jsonb {note, v}, seen_at) — member SELECT
+--   RLS + receiver-only UPDATE (mark seen); Realtime-enabled. send_nudge RPC
+--   enforces membership + the 3/link/day cap. NUDGES MINT NOTHING (§8).
+-- friends.haptic_signature text DEFAULT 'pulse' (pulse|double|triple|long)
+--   — the per-friend signature buzz, client-interpreted.
+-- Gift restores: with the shared streak on garden_links, either member's
+--   restore_streak saves it for BOTH — "I've been the absent one" works by
+--   construction.
+-- Edge Function: shared-wall — membership-checked signed URLs for BOTH
+--   sides' is_shared photos of a link (storage RLS is owner-scoped, so the
+--   partner's shared photos must be service-role signed).
+
+
+-- ============================================================================
+-- BATCH 15 — SOCIAL ECONOMY (spec §3 Gift & Shared). Migration
+-- batch15_social_economy.
+-- ============================================================================
+-- shop_items.scope is a CAPABILITY tier: self | gift (self+gift) |
+--   shared (self+gift+shared). Plant cosmetics are 'gift'; matching sets
+--   ('acc-friendship-bracelet', 'bloom-twin-flower') are 'shared'; garden
+--   themes/decor stay 'self' (the garden is private space).
+-- purchase_item v2 (p_sku, p_currency, p_scope, p_link_id): membership +
+--   capability + never-spend-on-a-no-op checks; ONE ledger spend
+--   (key purchase:<buyer>:<sku>:<scope>:<link|self>); gift writes the
+--   partner's user_items (giver in metadata); shared writes BOTH
+--   inventories atomically from one spend (default #14: buyer pays full,
+--   both receive). Gifted-item ping rides the push channel client-side.
+
+
+-- ============================================================================
+-- BATCH 16 — TIME CAPSULES (spec §6). Migration batch16_time_capsules.
+-- ============================================================================
+-- capsules (user_id, friend_id, link_id NULL = co-op, kind note|photo|voice,
+--   body, storage_path → memories bucket, unlock_at, opened_at) — owner ALL
+--   RLS + link-member SELECT for shared capsules. Unlock is LAZY (client
+--   checks unlock_at) + a local notification at unlock_at via the Batch 8
+--   engine. bury_capsule RPC enforces slots server-side: 1/plant free,
+--   5 with Pass (default #15). Voice memos record via expo-audio and use
+--   the memories-bucket path pattern. In-garden buried marker: pending art.
+
+
+-- ============================================================================
+-- BATCH 17 — GARDEN PASS (spec §7). Migration batch17_garden_pass_entitlements.
+-- ============================================================================
+-- users.premium_until timestamptz; user_is_premium(uid) helper.
+-- SERVER-enforced entitlements (never client-only):
+--   friends_plant_cap trigger  — 12 plants free, unlimited with Pass
+--                                (downgrade soft-locks in the client; rows
+--                                are never deleted).
+--   photos_cap trigger         — 20 photos/plant free.
+--   bury_capsule (Batch 16)    — 1 capsule slot free, 5 with Pass.
+-- Edge Function: revenuecat-webhook (verify_jwt OFF; fail-closed on the
+--   REVENUECAT_WEBHOOK_SECRET function secret) — RevenueCat lifecycle →
+--   users.is_premium/premium_until. appUserID = Supabase user id.
+-- Client: react-native-purchases behind EXPO_PUBLIC_REVENUECAT_IOS_KEY
+--   (graceful no-op without it); GardenPassScreen paywall; guardrails —
+--   cash never touches care, currency, or recovery; gems stay earned-only.
+-- SETUP (user): create the RevenueCat app + products ($4.99/mo, $29.99/yr),
+--   set EXPO_PUBLIC_REVENUECAT_IOS_KEY in .env, set the
+--   REVENUECAT_WEBHOOK_SECRET function secret, point the RC webhook at the
+--   revenuecat-webhook function URL.
+
+
+-- ============================================================================
+-- BATCH 18 — ALMANAC, LIVE-OPS & THE LONG TAIL (spec §7). Migrations
+-- batch18_almanac_liveops_longtail + batch18_seasonal_gems.
+-- ============================================================================
+-- Almanac: computed entirely from interactions + ledger_entries + photos +
+--   plants — no new write paths (client src/lib/almanac.ts; recap cards via
+--   the captureRef pipeline; history depth Pass-gated client-side).
+-- Collections: artifacts/artifact_templates finally activate —
+--   sync_artifacts() lazily awards on load (streak periods × cadence days vs
+--   required_streak_days; garden avg hydration vs required_avg_hydration).
+-- Live-ops: pg_cron enabled; seasonal_events table; shop_items.event_window
+--   tstzrange + hourly cron job 'shop-event-windows' toggling is_active.
+--   Seasonal gem drop: award_seasonal_gems trigger on link_events — a log
+--   that COMPLETES a merge group during an active event pays both members
+--   5 gems (once per event per link per user).
+-- Music Box (previews-only v1): nudge type 'song' — iTunes Search previews
+--   over the nudge channel, playback via expo-audio; no MusicKit module.
+-- Helpers: gopher/hedgehog SKUs (giftable decor; they flag care, never do
+--   it). L1 call auto-watering NOT built — CallKit spike needs a device
+--   session; the in-app "Call now" assist ships (trust-ladder L2).
 
 -- ============================================================================
 -- END OF SCHEMA

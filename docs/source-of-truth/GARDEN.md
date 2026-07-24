@@ -35,7 +35,9 @@ never occlude a plant. If you need true interleaving, plants must move into the 
 | `src/utils/occupancy.ts` | `OccupancyMap` + `buildOccupancy()` — which tile holds which entity |
 | `src/utils/placementRules.ts` | `canPlaceEntity()` — the placement validation rules |
 | `src/types/garden.ts` | `TileCoord`, `TileMeta`, `MapData`, `Entity` |
-| `src/data/exampleMap.ts` | The hardcoded map + `TILE_IMAGES` id→asset registry |
+| `src/data/exampleMap.ts` | The default (cozy-greenhouse) map + `TILE_IMAGES` id→asset registry |
+| `src/data/maps/index.ts` | **Map registry (Batch 12, D4)** — theme id → `MapData`; the only place a map resolves from a theme. All themes currently share the default geometry; themed tiles are a pending art pass |
+| `src/components/garden/DecorSprite.tsx` | Placed decor: same camera/drag contract as plants; art-pending placeholder chips; reactive variants keyed to aggregate garden signals |
 | `src/contexts/GardenContext.tsx` | `plants[]` state, `addPlant`, `updatePlantPosition`, derived `occupancy` |
 | `src/contexts/GardenCameraContext.tsx` | Camera shared values + `containerFrame` |
 | `src/components/garden/TileMap.tsx` | Skia tile rendering, pan/pinch gestures, drop highlight |
@@ -99,15 +101,24 @@ Anchor offsets are multiplied by `scale` inside the same transform list that als
 
 ## State ownership
 
-**`GardenContext`** — `plants[]` is the single source of truth (React state). `occupancy` is
-**derived**, never mutated:
+**`GardenContext`** — `plants[]` (and `decorItems[]`, Batch 12) are the source of truth (React
+state). `activeMap` derives from the equipped `gardenTheme` (`garden_layouts.theme`) via the map
+registry; **all validation, hit-testing, and free-tile search take the active map as a
+parameter** — nothing imports `exampleMap` directly anymore outside `src/data`. `occupancy` is
+**derived** from plants + decor, never mutated:
 
 ```ts
 const occupancy = useMemo(
-  () => buildOccupancy(plants.map(p => ({ id: p.id, tile: p.position }))),
-  [plants]
+  () => buildOccupancy([
+    ...plants.map(p => ({ id: p.id, tile: p.position })),
+    ...decorItems.map(d => ({ id: d.id, tile: d.position })),
+  ]),
+  [plants, decorItems]
 );
 ```
+
+`gardenSignals` (avg hydration, % windows satisfied) feed reactive decor — aggregate signals
+only, never any single relationship (spec §3).
 
 Rebuild it from `plants`; do not call the `OccupancyMap` mutators (`occupy`/`clear`/`clearEntity`)
 from state updaters.
@@ -226,8 +237,8 @@ Worth knowing before you "fix" something that was never wired up:
 - `MapData` is declared twice — `types/garden.ts` (`ground`) and `exampleMap.ts` (legacy, `tiles`).
   `exampleMap` points both at the same array.
 - `Entity.spriteId` is vestigial; it is always `'plant'`.
-- `exampleMap` is imported *directly* by `GardenContext` and `DraggablePlant` even though `TileMap`
-  takes `map` as a prop. A second map would break validation and hit-testing.
+- ~~`exampleMap` imported directly by `GardenContext`/`DraggablePlant`~~ **fixed in Batch 12** —
+  both consume `activeMap` from GardenContext via the `src/data/maps` registry.
 - `calculatePanBounds` hardcodes 10×10 assumptions and pans on X only.
 - `DraggablePlant` does not guard on `containerFrame.width === 0`, so a first frame with origin
   `(0, 0)` is possible.

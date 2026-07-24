@@ -7,8 +7,10 @@ import { Rubik_700Bold } from '@expo-google-fonts/rubik';
 import { Nunito_700Bold } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from './src/navigation/RootNavigator';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { GardenProvider } from './src/contexts/GardenContext';
 import { FriendsProvider } from './src/contexts/FriendsContext';
+import NotificationGate from './src/components/NotificationGate';
 
 // Keep the splash screen visible while we fetch fonts
 SplashScreen.preventAutoHideAsync();
@@ -52,11 +54,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <FriendsProvider>
-        <GardenProvider>
-          <RootNavigator />
-        </GardenProvider>
-      </FriendsProvider>
+      <AuthProvider>
+        <FriendsProvider>
+          <GardenProvider>
+            <NotificationGate />
+            <RootNavigator />
+          </GardenProvider>
+        </FriendsProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

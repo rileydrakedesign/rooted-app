@@ -1,7 +1,3 @@
-// GENERATED FILE — do not hand-edit.
-// Regenerate from the live schema via the Supabase MCP
-// (generate_typescript_types, project ojotriwvmudyoeyihynb).
-
 export type Json =
   | string
   | number
@@ -115,17 +111,49 @@ export type Database = {
             foreignKeyName: "artifacts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_garden_overview"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "artifacts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
+      }
+      capsules: {
+        Row: {
+          body: string | null
+          created_at: string
+          friend_id: string
+          id: string
+          kind: string
+          link_id: string | null
+          opened_at: string | null
+          storage_path: string | null
+          unlock_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          friend_id: string
+          id?: string
+          kind: string
+          link_id?: string | null
+          opened_at?: string | null
+          storage_path?: string | null
+          unlock_at: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          friend_id?: string
+          id?: string
+          kind?: string
+          link_id?: string | null
+          opened_at?: string | null
+          storage_path?: string | null
+          unlock_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       decorative_items: {
         Row: {
@@ -173,13 +201,6 @@ export type Database = {
             foreignKeyName: "decorative_items_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_garden_overview"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "decorative_items_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -187,9 +208,11 @@ export type Database = {
       }
       friends: {
         Row: {
+          birthday: string | null
           contact_frequency: Database["public"]["Enums"]["contact_frequency"]
           created_at: string | null
           email: string | null
+          haptic_signature: string
           id: string
           name: string
           phone_number: string | null
@@ -198,9 +221,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          birthday?: string | null
           contact_frequency?: Database["public"]["Enums"]["contact_frequency"]
           created_at?: string | null
           email?: string | null
+          haptic_signature?: string
           id?: string
           name: string
           phone_number?: string | null
@@ -209,9 +234,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          birthday?: string | null
           contact_frequency?: Database["public"]["Enums"]["contact_frequency"]
           created_at?: string | null
           email?: string | null
+          haptic_signature?: string
           id?: string
           name?: string
           phone_number?: string | null
@@ -224,17 +251,58 @@ export type Database = {
             foreignKeyName: "friends_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_garden_overview"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "friends_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
+      }
+      garden_links: {
+        Row: {
+          friend_a_id: string
+          friend_b_id: string
+          id: string
+          linked_at: string
+          status: string
+          streak_best: number
+          streak_broken_at: string | null
+          streak_broken_count: number
+          streak_count: number
+          streak_window_satisfied: boolean
+          streak_window_start: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          friend_a_id: string
+          friend_b_id: string
+          id?: string
+          linked_at?: string
+          status?: string
+          streak_best?: number
+          streak_broken_at?: string | null
+          streak_broken_count?: number
+          streak_count?: number
+          streak_window_satisfied?: boolean
+          streak_window_start?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          friend_a_id?: string
+          friend_b_id?: string
+          id?: string
+          linked_at?: string
+          status?: string
+          streak_best?: number
+          streak_broken_at?: string | null
+          streak_broken_count?: number
+          streak_count?: number
+          streak_window_satisfied?: boolean
+          streak_window_start?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
       }
       garden_layouts: {
         Row: {
@@ -271,13 +339,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "garden_layouts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_garden_overview"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "garden_layouts_user_id_fkey"
             columns: ["user_id"]
@@ -330,15 +391,290 @@ export type Database = {
             foreignKeyName: "interactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_garden_overview"
-            referencedColumns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          body: string
+          created_at: string
+          event_date: string | null
+          friend_id: string
+          id: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          event_date?: string | null
+          friend_id: string
+          id?: string
+          kind?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          event_date?: string | null
+          friend_id?: string
+          id?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "friends"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "interactions_user_id_fkey"
+            foreignKeyName: "journal_entries_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      link_events: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_id: string | null
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          link_id: string
+          logger_user_id: string
+          merge_group_id: string
+          occurred_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          interaction_type: Database["public"]["Enums"]["interaction_type"]
+          link_id: string
+          logger_user_id: string
+          merge_group_id: string
+          occurred_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          interaction_type?: Database["public"]["Enums"]["interaction_type"]
+          link_id?: string
+          logger_user_id?: string
+          merge_group_id?: string
+          occurred_at?: string
+        }
+        Relationships: []
+      }
+      link_invites: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          inviter_friend_id: string
+          inviter_user_id: string
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          inviter_friend_id: string
+          inviter_user_id: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          inviter_friend_id?: string
+          inviter_user_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      ledger_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          reason: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          reason: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          reason?: string
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nudges: {
+        Row: {
+          created_at: string
+          id: string
+          link_id: string
+          payload: Json
+          seen_at: string | null
+          sender_user_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_id: string
+          payload?: Json
+          seen_at?: string | null
+          sender_user_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_id?: string
+          payload?: Json
+          seen_at?: string | null
+          sender_user_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          interaction_id: string | null
+          is_shared: boolean
+          storage_path: string
+          taken_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          interaction_id?: string | null
+          is_shared?: boolean
+          storage_path: string
+          taken_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          interaction_id?: string | null
+          is_shared?: boolean
+          storage_path?: string
+          taken_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "friends"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plant_attachments: {
+        Row: {
+          created_at: string
+          id: string
+          plant_id: string
+          position: Json
+          sku: string
+          slot: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plant_id: string
+          position?: Json
+          sku: string
+          slot: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plant_id?: string
+          position?: Json
+          sku?: string
+          slot?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plant_attachments_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plant_attachments_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["sku"]
           },
         ]
       }
@@ -356,7 +692,13 @@ export type Database = {
           id: string
           is_dead: boolean | null
           last_hydration_update: string | null
+          prestige_level: number
+          streak_best: number
+          streak_broken_at: string | null
+          streak_broken_count: number
           streak_count: number | null
+          streak_window_satisfied: boolean
+          streak_window_start: string
           total_interactions: number | null
           total_xp: number | null
           updated_at: string | null
@@ -376,7 +718,13 @@ export type Database = {
           id?: string
           is_dead?: boolean | null
           last_hydration_update?: string | null
+          prestige_level?: number
+          streak_best?: number
+          streak_broken_at?: string | null
+          streak_broken_count?: number
           streak_count?: number | null
+          streak_window_satisfied?: boolean
+          streak_window_start?: string
           total_interactions?: number | null
           total_xp?: number | null
           updated_at?: string | null
@@ -396,7 +744,13 @@ export type Database = {
           id?: string
           is_dead?: boolean | null
           last_hydration_update?: string | null
+          prestige_level?: number
+          streak_best?: number
+          streak_broken_at?: string | null
+          streak_broken_count?: number
           streak_count?: number | null
+          streak_window_satisfied?: boolean
+          streak_window_start?: string
           total_interactions?: number | null
           total_xp?: number | null
           updated_at?: string | null
@@ -410,6 +764,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_tokens: {
+        Row: {
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          platform?: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       revive_logs: {
         Row: {
@@ -457,11 +832,98 @@ export type Database = {
             foreignKeyName: "revive_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_garden_overview"
-            referencedColumns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_items: {
+        Row: {
+          asset_key: string
+          category: string
+          created_at: string
+          description: string | null
+          display_name: string
+          is_active: boolean
+          price_gems: number | null
+          price_points: number | null
+          scope: string
+          sku: string
+          sort: number
+        }
+        Insert: {
+          asset_key: string
+          category: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          is_active?: boolean
+          price_gems?: number | null
+          price_points?: number | null
+          scope?: string
+          sku: string
+          sort?: number
+        }
+        Update: {
+          asset_key?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          is_active?: boolean
+          price_gems?: number | null
+          price_points?: number | null
+          scope?: string
+          sku?: string
+          sort?: number
+        }
+        Relationships: []
+      }
+      user_items: {
+        Row: {
+          acquired_via: string
+          created_at: string
+          id: string
+          ledger_entry_id: string | null
+          metadata: Json
+          sku: string
+          user_id: string
+        }
+        Insert: {
+          acquired_via?: string
+          created_at?: string
+          id?: string
+          ledger_entry_id?: string | null
+          metadata?: Json
+          sku: string
+          user_id: string
+        }
+        Update: {
+          acquired_via?: string
+          created_at?: string
+          id?: string
+          ledger_entry_id?: string | null
+          metadata?: Json
+          sku?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_items_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "revive_logs_user_id_fkey"
+            foreignKeyName: "user_items_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "user_items_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -475,14 +937,18 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           email: string | null
+          gems_balance: number
           id: string
           is_paused: boolean
           is_premium: boolean | null
+          notification_prefs: Json
           notification_time: string | null
           notifications_enabled: boolean | null
           paused_at: string | null
           phone_number: string | null
+          points_balance: number
           premium_expires_at: string | null
+          premium_until: string | null
           total_friends: number | null
           total_interactions: number | null
           updated_at: string | null
@@ -492,14 +958,18 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
+          gems_balance?: number
           id: string
           is_paused?: boolean
           is_premium?: boolean | null
+          notification_prefs?: Json
           notification_time?: string | null
           notifications_enabled?: boolean | null
           paused_at?: string | null
           phone_number?: string | null
+          points_balance?: number
           premium_expires_at?: string | null
+          premium_until?: string | null
           total_friends?: number | null
           total_interactions?: number | null
           updated_at?: string | null
@@ -509,14 +979,18 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
+          gems_balance?: number
           id?: string
           is_paused?: boolean
           is_premium?: boolean | null
+          notification_prefs?: Json
           notification_time?: string | null
           notifications_enabled?: boolean | null
           paused_at?: string | null
           phone_number?: string | null
+          points_balance?: number
           premium_expires_at?: string | null
+          premium_until?: string | null
           total_friends?: number | null
           total_interactions?: number | null
           updated_at?: string | null
@@ -525,20 +999,24 @@ export type Database = {
       }
     }
     Views: {
-      user_garden_overview: {
-        Row: {
-          alive_plants: number | null
-          avg_hydration: number | null
-          dead_plants: number | null
-          display_name: string | null
-          total_friends: number | null
-          total_interactions_count: number | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      bury_capsule: {
+        Args: {
+          p_body?: string
+          p_friend_id: string
+          p_kind: string
+          p_shared?: boolean
+          p_storage_path?: string
+          p_unlock_at: string
+        }
+        Returns: Json
+      }
+      cadence_period: {
+        Args: { p_frequency: Database["public"]["Enums"]["contact_frequency"] }
+        Returns: string
+      }
       calculate_current_hydration: {
         Args: { p_plant_id: string }
         Returns: number
@@ -551,17 +1029,71 @@ export type Database = {
         Args: {
           p_friend_id: string
           p_hydration_amount?: number
+          p_interaction_id?: string
           p_interaction_type: Database["public"]["Enums"]["interaction_type"]
           p_note?: string
+          p_occurred_at?: string
           p_user_id: string
           p_was_auto_detected?: boolean
         }
-        Returns: string
+        Returns: Json
+      }
+      accept_link_invite: {
+        Args: {
+          p_code: string
+          p_existing_friend_id?: string
+          p_frequency?: Database["public"]["Enums"]["contact_frequency"]
+          p_grid_x?: number
+          p_grid_y?: number
+          p_plant_type?: Database["public"]["Enums"]["plant_type"]
+        }
+        Returns: Json
+      }
+      create_link_invite: {
+        Args: { p_friend_id: string }
+        Returns: Json
+      }
+      link_for_friend: {
+        Args: { p_friend_id: string; p_user_id: string }
+        Returns: Database["public"]["Tables"]["garden_links"]["Row"]
+      }
+      purchase_item: {
+        Args: {
+          p_currency?: string
+          p_link_id?: string
+          p_scope?: string
+          p_sku: string
+        }
+        Returns: Json
+      }
+      restore_streak: {
+        Args: { p_currency: string; p_friend_id: string }
+        Returns: Json
+      }
+      roll_link_streak: {
+        Args: { p_link_id: string; p_to: string }
+        Returns: undefined
+      }
+      roll_plant_streak: {
+        Args: { p_plant_id: string; p_to: string }
+        Returns: undefined
+      }
+      send_nudge: {
+        Args: { p_link_id: string; p_payload?: Json; p_type: string }
+        Returns: Json
       }
       set_garden_paused: { Args: { p_paused: boolean }; Returns: undefined }
+      streak_multiplier: { Args: { p_streak: number }; Returns: number }
+      streak_tier_index: { Args: { p_streak: number }; Returns: number }
+      sync_artifacts: { Args: never; Returns: undefined }
+      sync_streaks: { Args: never; Returns: undefined }
       update_plant_hydration: {
         Args: { p_plant_id: string }
         Returns: undefined
+      }
+      user_is_premium: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

@@ -13,6 +13,11 @@ import HelpScreen from '../screens/HelpScreen';
 import AddFriendScreen from '../screens/AddFriendScreen';
 import SetFrequencyScreen from '../screens/SetFrequencyScreen';
 import ChoosePlantScreen from '../screens/ChoosePlantScreen';
+import ShopScreen from '../screens/ShopScreen';
+import MemoryWallScreen from '../screens/MemoryWallScreen';
+import AcceptInviteScreen from '../screens/AcceptInviteScreen';
+import GardenPassScreen from '../screens/GardenPassScreen';
+import AlmanacScreen from '../screens/AlmanacScreen';
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -59,6 +64,11 @@ export default function MainNavigator() {
       <Stack.Screen name="SetFrequency" component={SetFrequencyScreen} />
       <Stack.Screen name="ChoosePlant" component={ChoosePlantScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="Shop" component={ShopScreen} />
+      <Stack.Screen name="MemoryWall" component={MemoryWallScreen} />
+      <Stack.Screen name="AcceptInvite" component={AcceptInviteScreen} />
+      <Stack.Screen name="GardenPass" component={GardenPassScreen} />
+      <Stack.Screen name="Almanac" component={AlmanacScreen} />
     </Stack.Navigator>
   );
 }

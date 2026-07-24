@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { LinkingOptions, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../types/navigation';
+import { useAuth } from '../contexts/AuthContext';
 
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 
 const Stack = createNativeStackNavigator();
 
-// Deep links (home-screen widget → app): rooted://plant/<id>,
+// Deep links (home-screen widget / notifications → app): rooted://plant/<id>,
 // rooted://friends, rooted://add-friend
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: ['rooted://'],
@@ -26,36 +25,23 @@ const linking: LinkingOptions<RootStackParamList> = {
             },
           },
           AddFriend: 'add-friend',
+          AcceptInvite: 'invite/:code',
         },
       },
     },
   },
 };
 
+/**
+ * Auth gate. Session state comes from AuthContext (the single auth owner).
+ * `onboardingActive` keeps the Auth stack mounted through the post-signup
+ * onboarding steps (first watering, completion) — without it, signUp's new
+ * session would yank the user straight into the garden mid-flow.
+ */
 export default function RootNavigator() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { session, initializing, onboardingActive } = useAuth();
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  if (loading) {
+  if (initializing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4A5D3E" />
@@ -66,7 +52,7 @@ export default function RootNavigator() {
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {session ? (
+        {session && !onboardingActive ? (
           <Stack.Screen name="Main" component={MainNavigator} />
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />

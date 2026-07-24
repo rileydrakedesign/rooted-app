@@ -11,6 +11,7 @@
 import { Platform } from 'react-native';
 import { Plant } from '../types/garden';
 import { Friend } from '../contexts/FriendsContext';
+import { streakAtRisk, windowDeadline } from './garden';
 
 const APP_GROUP = 'group.com.rooted.app';
 
@@ -47,6 +48,13 @@ export function syncWidgetSnapshot(
             DECAY_BY_FREQUENCY[friend?.contactFrequency ?? 'Weekly'] ?? 100 / 7,
           lastContactAt: friend?.lastContactAt ?? '',
           frequency: friend?.contactFrequency ?? 'Weekly',
+          // Streaks (Batch 7): the Swift side re-derives at-risk forward
+          // from windowDeadline with the same threshold formula.
+          streak: plant.streak,
+          windowSatisfied: plant.windowSatisfied,
+          windowDeadline: windowDeadline(plant).toISOString(),
+          cadenceDays: plant.cadenceDays,
+          atRisk: streakAtRisk(plant, isPaused),
         };
       })
     );

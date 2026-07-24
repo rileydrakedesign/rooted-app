@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabase';
 import { Fonts, FontSizes } from '../../constants/fonts';
 import { PixelButton, PixelInput, ProgressBar, BackButton } from '../../components';
 import { useGarden } from '../../contexts/GardenContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { resolvePlantByName } from '../../data/plantCatalog';
 
 type Props = AuthStackScreenProps<'Onboarding9CreateAccount'>;
@@ -21,6 +22,7 @@ type Props = AuthStackScreenProps<'Onboarding9CreateAccount'>;
 export default function Onboarding9CreateAccount({ navigation, route }: Props) {
   const { friendName, frequency, plantType } = route.params;
   const { addPlant } = useGarden();
+  const { setOnboardingActive } = useAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -40,6 +42,9 @@ export default function Onboarding9CreateAccount({ navigation, route }: Props) {
     }
 
     setLoading(true);
+    // Keep the Auth stack mounted through signUp — the remaining onboarding
+    // steps (first watering, completion) run before the garden takes over.
+    setOnboardingActive(true);
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -70,6 +75,7 @@ export default function Onboarding9CreateAccount({ navigation, route }: Props) {
 
       navigation.navigate('Onboarding10Complete');
     } catch (error: any) {
+      setOnboardingActive(false);
       Alert.alert('Sign Up Failed', error.message);
     } finally {
       setLoading(false);

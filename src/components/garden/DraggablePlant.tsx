@@ -13,12 +13,15 @@
  */
 
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withSequence,
+  withTiming,
+  withRepeat,
   runOnJS,
 } from 'react-native-reanimated';
 import { Plant } from '../../types/garden';
@@ -35,8 +38,14 @@ import {
 import { useGardenCamera } from '../../contexts/GardenCameraContext';
 import { TileCoord } from '../../types/garden';
 import { DragState } from './TileMap';
-import { exampleMap } from '../../data/exampleMap';
 import { WILT_THRESHOLD } from '../../lib/garden';
+import { useGarden } from '../../contexts/GardenContext';
+import {
+  ATTACHMENT_ASSETS,
+  NAMEPLATE_STYLES,
+  SKU_ASSET_KEYS,
+} from '../../data/attachmentCatalog';
+import { Fonts } from '../../constants/fonts';
 
 interface DraggablePlantProps {
   plant: Plant;
@@ -44,6 +53,14 @@ interface DraggablePlantProps {
   onDragStateChange?: (dragState: DragState | null) => void;
   canPlaceAt: (tile: TileCoord, plantId: string) => { ok: boolean; reason?: string };
   onTap?: (plant: Plant) => void;
+  /**
+   * Birthday celebration (Batch 11). Renders a gold star badge until the
+   * party sprites land in the art pass (mockup-to-sprite).
+   */
+  isBirthday?: boolean;
+  /** A nudge just landed on this plant (Batch 14) — plays a brief wiggle;
+   *  richer per-type animations come with the art pass. */
+  nudgeEffect?: string | null;
 }
 
 export default function DraggablePlant({
@@ -52,8 +69,15 @@ export default function DraggablePlant({
   onDragStateChange,
   canPlaceAt,
   onTap,
+  isBirthday,
+  nudgeEffect,
 }: DraggablePlantProps) {
   const { cameraX, cameraY, scale, containerFrame } = useGardenCamera();
+  // Map bounds for the drag hit-test come from the ACTIVE map (Batch 12) —
+  // plain numbers so the worklets can capture them.
+  const { activeMap } = useGarden();
+  const mapWidth = activeMap.width;
+  const mapHeight = activeMap.height;
 
   // Zoom origin = measured container center; offset converts window → canvas
   // coords (see isoMath.ts frame contract)
@@ -65,6 +89,24 @@ export default function DraggablePlant({
   const isDragging = useSharedValue(false);
   const hoveredTile = useSharedValue<TileCoord | null>(null);
   const dragScale = useSharedValue(1); // springy "lifted" pop while dragging
+  const nudgeWiggle = useSharedValue(0); // degrees; driven by nudgeEffect
+
+  React.useEffect(() => {
+    if (!nudgeEffect) return;
+    // shimmer = gentle sway; shake/shimmy = livelier; ambient nudges = soft
+    const amp = nudgeEffect === 'shake' ? 8 : nudgeEffect === 'shimmy' ? 6 : 3;
+    nudgeWiggle.value = withRepeat(
+      withSequence(
+        withTiming(amp, { duration: 120 }),
+        withTiming(-amp, { duration: 120 })
+      ),
+      8,
+      true,
+      () => {
+        nudgeWiggle.value = withTiming(0, { duration: 150 });
+      }
+    );
+  }, [nudgeEffect, nudgeWiggle]);
 
   /**
    * Report drag state to parent (JS thread — runs validation for the highlight)
@@ -142,7 +184,7 @@ export default function DraggablePlant({
         fx, fy,
         scale.value, originX, originY,
         cameraX.value, cameraY.value,
-        exampleMap.width, exampleMap.height
+        mapWidth, mapHeight
       );
       hoveredTile.value = tile;
       runOnJS(reportDragState)(tile, fx, fy);
@@ -155,7 +197,7 @@ export default function DraggablePlant({
         fx, fy,
         scale.value, originX, originY,
         cameraX.value, cameraY.value,
-        exampleMap.width, exampleMap.height
+        mapWidth, mapHeight
       );
 
       const prev = hoveredTile.value;
@@ -202,6 +244,7 @@ export default function DraggablePlant({
         { translateX: anchorCanvas.x - PLANT_ANCHOR_OFFSET_X * scale.value },
         { translateY: anchorCanvas.y - anchorOffsetY * scale.value },
         { scale: scale.value * dragScale.value },
+        { rotate: `${nudgeWiggle.value}deg` },
       ],
       zIndex: isDragging.value ? 1000 : baseZIndex,
     };
@@ -210,20 +253,67 @@ export default function DraggablePlant({
   // Wilt is visual-only (death is cut): faded sprite + a droplet asking for water
   const isWilted = plant.hydration <= WILT_THRESHOLD;
 
+  // Equipped cosmetics (Batch 10). Sprite attachments composite under/over
+  // the plant sprite; a null image (art pending) renders nothing. Nameplates
+  // are text plates — they work without art.
+  const spriteAttachments = plant.attachments
+    .map((a) => ({ ...ATTACHMENT_ASSETS[SKU_ASSET_KEYS[a.sku] ?? ''], sku: a.sku }))
+    .filter((a) => a && a.image != null);
+  const underLayers = spriteAttachments.filter((a) => a.layer === 'under');
+  const overLayers = spriteAttachments.filter((a) => a.layer === 'over');
+  const nameplate = plant.attachments
+    .map((a) => NAMEPLATE_STYLES[a.sku])
+    .find((style) => style != null);
+
   return (
     <GestureDetector gesture={composedGesture}>
       <Animated.View style={[styles.plantContainer, animatedStyle]}>
+        {underLayers.map((a) => (
+          <Image
+            key={a.sku}
+            source={a.image}
+            style={styles.attachmentLayer}
+            resizeMode="contain"
+          />
+        ))}
         <Image
           source={plant.image}
           style={[styles.plantImage, isWilted && styles.wilted]}
           resizeMode="contain"
         />
+        {overLayers.map((a) => (
+          <Image
+            key={a.sku}
+            source={a.image}
+            style={styles.attachmentLayer}
+            resizeMode="contain"
+          />
+        ))}
+        {nameplate && (
+          <View style={[styles.nameplate, { backgroundColor: nameplate.background }]}>
+            <Text
+              style={[styles.nameplateText, { color: nameplate.text }]}
+              numberOfLines={1}
+            >
+              {plant.friendName.toUpperCase()}
+            </Text>
+          </View>
+        )}
         {isWilted && (
           <View style={styles.wiltBadge}>
             <PixelIcon
               name="water"
               size={Math.round(PLANT_SIZE * 0.25)}
               color={Colors.hydrationLow}
+            />
+          </View>
+        )}
+        {isBirthday && (
+          <View style={styles.birthdayBadge}>
+            <PixelIcon
+              name="star"
+              size={Math.round(PLANT_SIZE * 0.25)}
+              color={Colors.streakGold}
             />
           </View>
         )}
@@ -260,5 +350,30 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
+  },
+  attachmentLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  birthdayBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  nameplate: {
+    position: 'absolute',
+    bottom: -2,
+    alignSelf: 'center',
+    maxWidth: PLANT_SIZE,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: Colors.pixelBorder,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  nameplateText: {
+    fontSize: 9,
+    fontFamily: Fonts.subtext,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

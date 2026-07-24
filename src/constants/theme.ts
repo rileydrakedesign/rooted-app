@@ -52,6 +52,10 @@ export const Colors = {
   wheat: '#F5DEB3',            // Light edge on tan option buttons
   saddleBrown: '#8B4513',      // Dark edge / onboarding heading brown
   mintSurface: '#E8F5E9',      // Sprite showcase background
+
+  // Water / hydration reward
+  waterBlue: '#4A90D9',        // Watering reward badge, water accents
+  waterBlueDark: '#2C5F8A',    // Border/edge for waterBlue surfaces
 };
 
 export const Spacing = {

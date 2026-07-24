@@ -3,11 +3,20 @@
 *July 2026. The single scope document: everything the app does today, everything planned, and
 everything deliberately rejected — with each item's status and source.*
 
+> **2026-07-22 — the scope-plan roadmap SHIPPED.** Batches 6–18 of
+> [`scope-plan.md`](scope-plan.md) are implemented end-to-end (schema + RPCs + client), all
+> §6 defaults adopted as written. The §11 matrix below reflects post-roadmap status. Still
+> open: the sprite art pass (user-designed; registries render placeholders until then),
+> RevenueCat store setup (env key + webhook secret), and the CallKit / background-haptics
+> device spikes. `docs/source-of-truth/DATA-MODEL.md` records the batch-by-batch detail.
+
 **How this doc relates to the others:**
 
 - `docs/app-spec.md` is the slim, user-perspective companion — the designed experience in
   plain language, without status tracking. This doc holds the statuses, evidence, and open
   questions behind it.
+- `docs/scope-plan.md` is the build sequence — the phased roadmap (Batches 6–18) that takes the
+  app from its current state to the full app-spec, with proposed tunable defaults.
 - `docs/source-of-truth/` describes what **is** (canonical; wins on any conflict about current
   behavior).
 - `docs/prd.md` is the original MVP PRD (Dec 2025) — partially superseded; where it conflicts
@@ -724,46 +733,46 @@ leaderboards.
 | Friends + plants persistence (Supabase, RLS) | 0 | ✅ |
 | Per-friend contact cadence → decay rate | 0 | ✅ |
 | Client-side decay + wilt (no death — ratified) | 0 | ✅ |
-| Pause / vacation freeze | 0 | ✅ (visibility refinement owed) |
-| Manual care loop (log → hydrate → reward) | 0 | ✅ (no streak/evolution updates) |
+| Pause / vacation freeze | 0 | ✅ (in-garden banner shipped B8; freezes every clock incl. streaks B7) |
+| Manual care loop (log → hydrate → reward) | 0 | ✅ (streak + evolution + mint all in one RPC since B7/B9) |
 | Garden share snapshot | 0 | ✅ |
 | Home-screen widget (3 sizes, deep links) | 0 | ✅ |
 | 10-step value-first onboarding + first-friend seed | 0 | ✅ |
 | Tabs, auth gate, pixel design system | 0 | ✅ |
-| First care action inside onboarding | 1 | 📋 |
-| Contact picker (optional) | 1 | 📋 |
-| Reminder-first nudge flow (L2) + calendar confirm cards | 1 | 📋 |
-| Auto-detected calls (L1, CallKit) | 1 | 💡 spike-gated |
-| Interaction weight rework / simplification | 1 | 💡 (gates economy Phase 1) |
-| Plant state ladder (expressive polish) + seasons copy | 1 | 💡 |
-| Streak system + point multiplier (algorithm §6.5) | 1/4 | 📋 ratified direction |
-| Plant journal (notes, birthdays, milestones, gifts) | 1 | 📋 (base free forever) |
-| Photo memories (solo wall) | 1 | 📋 |
-| Notifications (plant-voiced, capped, state-aware) | 1 | 📋 |
-| Offline-tolerant logging queue | 1 | 📋 |
-| Garden triage view ("who needs you") | 1 | 💡 (helper-fronted, §6.6) |
-| Linking (invite link/QR, graft animation, locked-state ads) | 2 | 📋 |
-| Shared logging with merge (+ linked earn bonus) | 2 | 📋 |
-| Themed nudges (sunlight/rain/butterfly/leaf/ladybug) | 2 | 📋 |
-| Dual photo moments (composite memory cards) | 2 | 📋 |
-| Bloom events / co-op goals / time capsules / ambient presence | 2 | 💡 |
-| Async read-only garden visiting (dream codes) | 2 | 💡 |
-| Garden Almanac + shareable recap cards | 3 | 📋 |
+| First care action inside onboarding | 1 | ✅ B6 (final onboarding step waters the seeded friend) |
+| Contact picker (optional) | 1 | 💡 (not in scope-plan; phone/email fields exist) |
+| Reminder-first nudge flow (L2) + calendar confirm cards | 1 | ✅ B8 (notification actions + calendar suggestions) |
+| Auto-detected calls (L1, CallKit) | 1 | 💡 spike still device-gated; "Call now" assist shipped (B18) |
+| Interaction weight rework / simplification | 1 | ✅ B6 (hung out 50 / called 35 / texted 15) |
+| Plant state ladder (expressive polish) + seasons copy | 1 | 💡 (art pass) |
+| Streak system + point multiplier (algorithm §6.5) | 1/4 | ✅ B7 (window-based, one SQL roll-forward, live-tested) |
+| Plant journal (notes, birthdays, milestones, gifts) | 1 | ✅ B11 |
+| Photo memories (solo wall) | 1 | ✅ B11 (private bucket, signed URLs, 20-cap server-enforced B17) |
+| Notifications (plant-voiced, capped, state-aware) | 1 | ✅ B8 (local-first engine, digest, at-risk, birthdays, capsules) |
+| Offline-tolerant logging queue | 1 | ✅ B6 (idempotent replay, preserves backdating) |
+| Garden triage view ("who needs you") | 1 | 🔨 (digest covers it; helper-fronted view = art pass) |
+| Linking (invite link/QR, graft animation, locked-state ads) | 2 | ✅ B13 (code + deep link; graft animation = art pass) |
+| Shared logging with merge (+ linked earn bonus) | 2 | ✅ B13 (D5 merge groups, live-tested; both sides earn) |
+| Themed nudges (sunlight/rain/butterfly/leaf/ladybug) | 2 | ✅ B14 (+ shimmer/shake/shimmy actions; 3/day cap; mint nothing) |
+| Dual photo moments (composite memory cards) | 2 | 🔨 B14 (both-sides shared wall shipped; composite card render = polish) |
+| Bloom events / co-op goals / time capsules / ambient presence | 2 | ✅ capsules B16 (incl. co-op); blooms/ambient = art pass |
+| Async read-only garden visiting (dream codes) | 2 | 💡 (not in scope-plan) |
+| Garden Almanac + shareable recap cards | 3 | ✅ B18 (recap card via captureRef; history Pass-gated) |
 | Postcard exports (digital → printed) | 3 | 💡 |
-| Voice-note watering | 3 | 💡 (P2, deferred) |
+| Voice-note watering | 3 | 🔨 (voice capsules shipped B16; voice-as-log deferred) |
 | Grove view (groups) | v2 | deferred |
-| Points + gems ledger, minting on log events | 4 (P1) | 📋 |
-| Streak multiplier tiers + prestige milestones | 4 (P1) | 📋 (values need economy sim) |
-| Plant stylistic upgrades (Self) | 4 (P1) | 📋 |
-| Streak restores (points/gems, bounded window, escalating) | 4 (P1) | 📋 |
-| Garden upgrades (themes, weather, soundscapes, layouts) | 4 (P2) | 💡 (multi-map prereq) |
-| Static assets + reactive subset | 4 (P2) | 💡 |
-| Helpers (Self, functional-lite creatures) | 4 (P2) | 💡 |
-| Gift / Shared purchase scopes | 4 (P3) | 📋 (needs linking) |
-| Gift streak restores ("I've been the absent one") + shared linked streaks | 4 (P3) | 📋 |
-| Message actions (images, plant actions, haptic signatures) | 4 (P3) | 💡 |
-| Music Box (MusicKit; Spotify fast-follow) | 4 (P4) | 💡 |
-| Capsule slots | 4 (P4) | 💡 (premium boundary open) |
-| Seasonal live-ops + collections ladder | 4 (P4) | 💡 |
-| Garden Pass subscription + free tier | — | 📋 (cap & price open) |
+| Points + gems ledger, minting on log events | 4 (P1) | ✅ B9 (D1 ledger, idempotent, live-tested) |
+| Streak multiplier tiers + prestige milestones | 4 (P1) | ✅ B7/B9 (sim-checked values) |
+| Plant stylistic upgrades (Self) | 4 (P1) | ✅ B10 (12-SKU catalog; sprites = art pass, nameplates render now) |
+| Streak restores (points/gems, bounded window, escalating) | 4 (P1) | ✅ B9 (link-aware B13) |
+| Garden upgrades (themes, weather, soundscapes, layouts) | 4 (P2) | ✅ B12 (multi-map registry; themed tiles = art pass) |
+| Static assets + reactive subset | 4 (P2) | ✅ B12 (decor placement/drag; reactive signals wired; sprites = art pass) |
+| Helpers (Self, functional-lite creatures) | 4 (P2) | 🔨 B18 (SKUs + gifting; creature behavior = art pass) |
+| Gift / Shared purchase scopes | 4 (P3) | ✅ B15 (buyer pays full, both receive) |
+| Gift streak restores ("I've been the absent one") + shared linked streaks | 4 (P3) | ✅ B13/B14 (shared streak makes either side's restore save both) |
+| Message actions (images, plant actions, haptic signatures) | 4 (P3) | ✅ B14 |
+| Music Box (MusicKit; Spotify fast-follow) | 4 (P4) | ✅ B18 previews-only v1 (iTunes previews; MusicKit = later spike) |
+| Capsule slots | 4 (P4) | ✅ B16 (1 free / 5 Pass, RPC-enforced) |
+| Seasonal live-ops + collections ladder | 4 (P4) | ✅ B18 (pg_cron windows, seasonal gems, artifacts activate) |
+| Garden Pass subscription + free tier | — | 🔨 B17 (entitlements server-enforced, paywall shipped; RevenueCat setup = user) |
 | Plant death, paid revives, purchasable points, ads, forced invites, hollow streaks, guilt copy | — | ❌ never |

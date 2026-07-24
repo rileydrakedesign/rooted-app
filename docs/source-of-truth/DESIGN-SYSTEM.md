@@ -121,3 +121,23 @@ New tiles must be registered in **both** `TILE_IMAGES` (`src/data/exampleMap.ts`
 Art lives in `assets/images/plants/pixel/` and `assets/images/garden/tiles/`. Plant sprites are
 referenced by static `require()` from the plant catalog, which is currently duplicated in
 `ChoosePlantScreen` and `Onboarding6ChoosePlant` — adding a plant means editing both.
+
+
+---
+
+## Cosmetic & decor asset pipeline (Batches 10–18 — ART PENDING)
+
+Every purchasable/earnable visual is **registry-keyed and design-pending by intent** (the
+user designs all sprites; mechanics run today):
+
+| Registry | Renders | Until art lands |
+|---|---|---|
+| `src/data/attachmentCatalog.ts` (`ATTACHMENT_ASSETS`) | pot/accessory/bloom layers under/over the plant sprite in `DraggablePlant` | nothing (equip state persists); **nameplates render as text plates and work now** |
+| `DECOR_ASSETS` in `src/components/garden/DecorSprite.tsx` | placed decor (+ optional `reactiveImage` variant keyed to aggregate garden signals) | a labeled placeholder chip (placeable/movable today) |
+| `src/data/maps/index.ts` | themed terrain per garden theme | the default cozy-greenhouse tiles |
+| Birthday/graft/nudge/capsule celebrations | in-garden moments | PixelIcon badges + the wiggle animation |
+
+To ship a sprite: run the mockup through **mockup-to-sprite** (terrain: **new-terrain-tile**),
+drop the asset under `assets/images/`, and set the registry entry's `image` (or the theme's
+tile set). No code changes beyond the registry. New water-reward tokens: `Colors.waterBlue`
+/ `Colors.waterBlueDark`.

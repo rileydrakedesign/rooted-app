@@ -50,10 +50,6 @@ export default function AuthNavigator() {
         component={Onboarding6ChoosePlant}
       />
       <Stack.Screen
-        name="Onboarding7PlantBrowse"
-        component={Onboarding6ChoosePlant}
-      />
-      <Stack.Screen
         name="Onboarding8Celebration"
         component={Onboarding8Celebration}
       />
